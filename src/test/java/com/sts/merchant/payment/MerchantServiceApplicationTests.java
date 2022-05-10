@@ -1,10 +1,10 @@
-package com.sts.parallelCap.payment;
+package com.sts.merchant.payment;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ParallelCapApplicationTests {
+class MerchantServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

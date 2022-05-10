@@ -1,13 +1,13 @@
-package com.sts.parallelCap.payment;
+package com.sts.merchant.payment;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ParallelCapApplication {
+public class MerchantServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ParallelCapApplication.class, args);
+		SpringApplication.run(MerchantServiceApplication.class, args);
 	}
 
 }
