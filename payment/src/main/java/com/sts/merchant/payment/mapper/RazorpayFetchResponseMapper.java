@@ -1,12 +1,9 @@
 package com.sts.merchant.payment.mapper;
 
-import com.google.gson.JsonObject;
 import com.razorpay.Payment;
 import com.sts.merchant.payment.response.Item;
 import com.sts.merchant.payment.response.RazorpayFetchPaymentResponse;
 import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
 import java.util.List;
 
 @Component

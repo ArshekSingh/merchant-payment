@@ -2,6 +2,7 @@ package com.sts.merchant.payment.service.serviceImpl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sts.merchant.core.enums.Transaction;
 import com.sts.merchant.core.entity.TransactionDetail;
 import com.sts.merchant.core.repository.TransactionRepository;
 import com.sts.merchant.payment.response.Item;
@@ -30,7 +31,7 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
         TransactionDetail transactionDetail = new TransactionDetail();
         transactionDetail.setTransactionId(item.getId());
         transactionDetail.setTransactionAmount(BigDecimal.valueOf(item.getAmount()));
-        transactionDetail.setTransactionStatus("C");
+        transactionDetail.setTransactionStatus(Transaction.CAPTURED.toString());
         transactionDetail.setLoanAccountMapId(loanAccountMapId);
         transactionDetail.setTransactionTax(item.getTax());
         transactionDetail.setTransactionFee(item.getFee());

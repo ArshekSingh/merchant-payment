@@ -14,7 +14,7 @@ public class Transfers {
     private Integer amount;
     private String currency;
     private Notes notes;
-    private List<String> linkedAccountNotes = new ArrayList<String>();
+    private List<String> linkedAccountNotes;
     private Boolean onHold;
     private Integer onHoldUntil;
 }

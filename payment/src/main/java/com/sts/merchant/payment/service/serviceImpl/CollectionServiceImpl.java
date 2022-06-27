@@ -4,6 +4,7 @@ import com.sts.merchant.core.entity.CollectionDetail;
 import com.sts.merchant.core.entity.CollectionDetailPK;
 import com.sts.merchant.core.entity.LoanDetail;
 import com.sts.merchant.core.entity.TransactionDetail;
+import com.sts.merchant.core.enums.Collection;
 import com.sts.merchant.core.repository.CollectionRepository;
 import com.sts.merchant.payment.service.CollectionService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ public class CollectionServiceImpl implements CollectionService {
         collectionDetail.setCollectionAmount(amountToBeCollected);
         collectionDetail.setCollectionDate(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
         collectionDetail.setCollectionDetailPK(new CollectionDetailPK(collectionSequence, loanDetail.getLoanId()));
-        collectionDetail.setStatus("P");
+        collectionDetail.setStatus(Collection.PENDING.toString());
         collectionDetail.setCollectionType(transaction.getTransactionMode());
         collectionDetail.setTransactionId(transaction.getTransactionId());
         collectionDetail.setCreatedBy("JOB");

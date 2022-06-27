@@ -6,6 +6,9 @@ import com.razorpay.Payment;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Transfer;
+import com.sts.merchant.core.enums.Collection;
+import com.sts.merchant.core.enums.Loan;
+import com.sts.merchant.core.enums.Transaction;
 import com.sts.merchant.core.entity.*;
 import com.sts.merchant.core.repository.*;
 import com.sts.merchant.core.response.Response;
@@ -24,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -69,15 +73,19 @@ public class RazorpayServiceImpl implements RazorpayService {
         try {
             loanLoop:
             for (LoanDetail loanDetail : loans) {
+                //Fetching loan collection summary of current time
                 Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loanDetail.getLoanId());
                 if (collectionSummary.isPresent()) {
-                    Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loanDetail.getLoanId(), "C");
+                    //Fetch the collection sequence time
+                    Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loanDetail.getLoanId(), Collection.COLLECTED.toString());
                     Integer collectionSequence;
+                    //Set sequence incremented by 1
                     collectionSequence = collectionSequenceCount.map(integer -> integer + 1).orElse(1);
                     accountLoop:
                     for (LoanAccountMapping accountMapping : loanAccountMappings) {
                         if (loanDetail.getLoanId().equals(accountMapping.getLoanId())) {
-                            Optional<List<TransactionDetail>> transactions = transactionRepository.findAllCapturedTransactionsByLoanAndAccount("C", loanDetail.getLoanId(), accountMapping.getLoanAccountMapId());
+                            //Find all captured transaction to process collection.
+                            Optional<List<TransactionDetail>> transactions = transactionRepository.findAllCapturedTransactionsByLoanAndAccount(Transaction.CAPTURED.toString(), loanDetail.getLoanId(), accountMapping.getLoanAccountMapId());
                             if (transactions.isPresent() && !transactions.get().isEmpty()) {
                                 transactionLoop:
                                 for (TransactionDetail transaction : transactions.get()) {
@@ -112,11 +120,11 @@ public class RazorpayServiceImpl implements RazorpayService {
                                         Response<RazorpayTransferResponse> transferResponse = transferFundsToParallelCap(transaction, amountToBeCollected, loanDetail.getFunderAccountId(), accountMapping);
                                         if (transferResponse.getStatus().is2xxSuccessful()) {
                                             //put these statuses in enum
-                                            collectionRepository.updateCollectionStatusByCollectionId("C", collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getCollectionDetailPK().getCollectionSequence());
-                                            transactionRepository.updateTransactionStatusById("P", transaction.getId());
+                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getCollectionDetailPK().getCollectionSequence());
+                                            transactionRepository.updateTransactionStatusById(Transaction.PROCESSED.toString(), transaction.getId());
                                             log.info("Collection successful for loan :{}", loanDetail.getLoanAmount() + " account :" + accountMapping.getAccountId() + " TransactionId :" + collectionDetail.getTransactionId());
                                         } else {
-                                            collectionRepository.updateCollectionStatusByCollectionId("F", collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getCollectionDetailPK().getCollectionSequence());
+                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getCollectionDetailPK().getCollectionSequence());
                                             log.error("Error in collecting for loan :{}", loanDetail.getLoanId() + " account :" + accountMapping.getAccountId());
                                         }
                                     } catch (Exception exception) {
@@ -144,11 +152,11 @@ public class RazorpayServiceImpl implements RazorpayService {
     public void fetchPaymentsAndRecord() {
         try {
             //fetch active loans tagged to this account
-            Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans("A");
+            Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
             if (loans.isPresent() && !loans.get().isEmpty()) {
                 for (LoanDetail loan : loans.get()) {
                     //fetch active loan accounts for this loan
-                    Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts("A", loan.getLoanId());
+                    Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId());
                     if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
                         for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
                             //Fetch Last transaction for this account and vendor
@@ -221,7 +229,9 @@ public class RazorpayServiceImpl implements RazorpayService {
                                 paymentTransactionService.savePaymentAsTransaction(item, loanAccountMapping.getAccountId(), loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
                             }
                         } catch (JsonProcessingException e) {
-                            log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId());
+                            log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId(), e);
+                        } catch (Exception exception) {
+                            log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId(), exception);
                         }
                         log.info("total payments fetched :{}", payments.size());
                     }
