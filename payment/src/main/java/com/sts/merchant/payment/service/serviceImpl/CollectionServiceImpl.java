@@ -41,6 +41,8 @@ public class CollectionServiceImpl implements CollectionService {
             collectionDetail.setCreatedOn(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
             collectionDetail = collectionRepository.save(collectionDetail);
             return collectionDetail;
-        } else return existingCollection.get();
+        } else {
+            return existingCollection.get();
+        }
     }
 }
