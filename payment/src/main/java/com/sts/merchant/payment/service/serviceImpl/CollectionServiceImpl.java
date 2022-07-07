@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -27,16 +28,19 @@ public class CollectionServiceImpl implements CollectionService {
     @Transactional
     @Override
     public CollectionDetail saveCollection(LoanDetail loanDetail, Integer collectionSequence, TransactionDetail transaction, BigDecimal amountToBeCollected) {
-        CollectionDetail collectionDetail = new CollectionDetail();
-        collectionDetail.setCollectionAmount(amountToBeCollected);
-        collectionDetail.setCollectionDate(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
-        collectionDetail.setCollectionDetailPK(new CollectionDetailPK(collectionSequence, loanDetail.getLoanId()));
-        collectionDetail.setStatus(Collection.PENDING.toString());
-        collectionDetail.setCollectionType(transaction.getTransactionMode());
-        collectionDetail.setTransactionId(transaction.getTransactionId());
-        collectionDetail.setCreatedBy("JOB");
-        collectionDetail.setCreatedOn(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
-        collectionDetail = collectionRepository.save(collectionDetail);
-        return collectionDetail;
+        Optional<CollectionDetail> existingCollection = collectionRepository.findExistingCollectionByTxn(loanDetail.getLoanId(), transaction.getTransactionId());
+        if (existingCollection.isEmpty()) {
+            CollectionDetail collectionDetail = new CollectionDetail();
+            collectionDetail.setCollectionAmount(amountToBeCollected);
+            collectionDetail.setCollectionDate(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
+            collectionDetail.setCollectionDetailPK(new CollectionDetailPK(collectionSequence, loanDetail.getLoanId()));
+            collectionDetail.setStatus(Collection.PENDING.toString());
+            collectionDetail.setCollectionType(transaction.getTransactionMode());
+            collectionDetail.setTransactionId(transaction.getTransactionId());
+            collectionDetail.setCreatedBy("JOB");
+            collectionDetail.setCreatedOn(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
+            collectionDetail = collectionRepository.save(collectionDetail);
+            return collectionDetail;
+        } else return existingCollection.get();
     }
 }
