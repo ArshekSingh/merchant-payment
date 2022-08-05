@@ -37,7 +37,6 @@ public class MerchantServiceApplication {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
-
     }
 
     @Bean
@@ -51,7 +50,7 @@ public class MerchantServiceApplication {
         SpringApplication.run(MerchantServiceApplication.class, args);
     }
 
-//
+
 //    private String getSaltString() {
 //        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 //        StringBuilder salt = new StringBuilder();
@@ -80,32 +79,32 @@ public class MerchantServiceApplication {
 //        loanDetail.setLoanId(1);
 //        loanDetail.setLoanStatus("A");
 //        loanDetail.setCreatedOn(LocalDateTime.now());
-//        loanDetail.setCreatedBy("TEST");
+//        loanDetail.setCreatedBy("PARALLEL_CAP_TEST");
 //        loanDetail.setCapPercentage(10);
-//        loanDetail.setFunderAccountId("acc_JVWLRvD3QVBodY");
-//        loanDetail.setDailyLimitAmount(BigDecimal.valueOf(1000000));
-//        loanDetail.setMonthlyLimitAmount(BigDecimal.valueOf(100000000));
-//        loanDetail.setWeeklyLimitAmount(BigDecimal.valueOf(5000000));
-//        loanDetail.setYearlyLimitAmount(BigDecimal.valueOf(500000000));
-//        loanDetail.setLoanAmount(BigDecimal.valueOf(10000000000L));
-//        loanDetail.setPaymentDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 5, 1, 0, 0));
+//        loanDetail.setFunderAccountId("acc_K0p7vRKjOTR3St");
+//        loanDetail.setDailyLimitAmount(BigDecimal.valueOf(5000));
+//        loanDetail.setMonthlyLimitAmount(BigDecimal.valueOf(150000));
+//        loanDetail.setWeeklyLimitAmount(BigDecimal.valueOf(35000));
+//        loanDetail.setYearlyLimitAmount(BigDecimal.valueOf(10000000));
+//        loanDetail.setLoanAmount(BigDecimal.valueOf(100000000));
+//        loanDetail.setPaymentDate(LocalDateTime.of(2022, 8, 1, 0, 0));
+//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 8, 1, 0, 0));
+//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 8, 1, 0, 0));
+//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 8, 1, 0, 0));
+//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 8, 1, 0, 0));
 //        loanDetail = loanDetailRepository.save(loanDetail);
 //
 //        LoanAccountMapping loanAccountMapping = new LoanAccountMapping();
 //        loanAccountMapping.setLoanId(loanDetail.getLoanId());
 //        loanAccountMapping.setStatus("A");
 //        loanAccountMapping.setLoanAccountMapId(1);
-//        loanAccountMapping.setAccountId("JNvRFQjCGpwb6t");
+//        loanAccountMapping.setAccountId("JfgeODLVGhtz4f");
 //        loanAccountMapping.setSalt(getSaltString());
 //        loanAccountMapping.setCreatedOn(LocalDateTime.now());
-//        loanAccountMapping.setCreatedBy("TEST");
+//        loanAccountMapping.setCreatedBy("PARALLEL_CAP_TEST");
 //        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
-//        loanAccountMapping.setInfo1(Crypto.encrypt("rzp_test_kAD1RIVvc0iZ9j", secretKey, loanAccountMapping.getSalt()));
-//        loanAccountMapping.setInfo2(Crypto.encrypt("UTyE6QZ5SSM0ggWRNW2x85d1", secretKey, loanAccountMapping.getSalt()));
+//        loanAccountMapping.setInfo1(Crypto.encrypt("rzp_live_FE2cV60B2wUEhA", secretKey, loanAccountMapping.getSalt()));
+//        loanAccountMapping.setInfo2(Crypto.encrypt("QADd80MqFrceY4Vw9YJbuWMr", secretKey, loanAccountMapping.getSalt()));
 //        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
 //
 //        System.out.println(loanAccountMapping.getInfo1() + "  ,,  " + loanAccountMapping.getInfo2());

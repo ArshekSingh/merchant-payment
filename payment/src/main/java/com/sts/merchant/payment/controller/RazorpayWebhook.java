@@ -6,11 +6,13 @@ import com.sts.merchant.payment.service.RazorpayWebhookService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.extern.slf4j.XSlf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @RestController
@@ -26,9 +28,10 @@ public class RazorpayWebhook {
     }
 
     @RequestMapping(value = "/razorpay", method = RequestMethod.POST)
-    public void captureWebhook(@RequestBody Root request, HttpServletResponse httpServletResponse) {
-        log.info("razorpay webhook notification received , for accountId : {}", request.getAccount_id());
-        Response response = paymentService.capturePayment(request);
-        httpServletResponse.setStatus(response.getCode());
+    public void captureWebhook(@RequestBody HttpServletRequest request, HttpServletResponse httpServletResponse) {
+        log.info("razorpay webhook notification received , for accountId : {}");
+        httpServletResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+//        Response response = paymentService.capturePayment(request);
+//        httpServletResponse.setStatus(response.getCode());
     }
 }

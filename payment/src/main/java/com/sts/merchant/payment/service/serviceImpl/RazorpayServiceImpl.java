@@ -1,7 +1,6 @@
 package com.sts.merchant.payment.service.serviceImpl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.razorpay.Payment;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
@@ -30,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -53,9 +53,6 @@ public class RazorpayServiceImpl implements RazorpayService {
 
     @Autowired
     private PaymentTransactionService paymentTransactionService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     public RazorpayServiceImpl(CollectionSummaryRepository collectionSummaryRepository, CollectionRepository collectionRepository, LoanDetailRepository loanDetailRepository, TransactionRepository transactionRepository, LoanAccountRepository loanAccountRepository) {
         this.collectionSummaryRepository = collectionSummaryRepository;
@@ -89,29 +86,34 @@ public class RazorpayServiceImpl implements RazorpayService {
                             if (transactions.isPresent() && !transactions.get().isEmpty()) {
                                 transactionLoop:
                                 for (TransactionDetail transaction : transactions.get()) {
-                                    BigDecimal amountToBeCollected = transaction.getTransactionAmount().multiply(BigDecimal.valueOf(loanDetail.getCapPercentage())).divide(new BigDecimal(100));
-                                    BigDecimal dailyAmount = transaction.getTransactionAmount().add(collectionSummary.get().getDailyCollectionAmountRec());
-                                    BigDecimal weeklyAmount = transaction.getTransactionAmount().add(collectionSummary.get().getWeeklyCollectionAmountRec());
-                                    BigDecimal monthlyAmount = transaction.getTransactionAmount().add(collectionSummary.get().getMonthlyCollectionAmountRec());
-                                    BigDecimal yearlyAmount = transaction.getTransactionAmount().add(collectionSummary.get().getYearlyCollectionAmountRec());
+                                    BigDecimal amountToBeCollected = transaction.getTransactionAmount().multiply(BigDecimal.valueOf(loanDetail.getCapPercentage())).divide(new BigDecimal(100), 2, RoundingMode.UP);
+                                    BigDecimal dailyAmount = amountToBeCollected.add(collectionSummary.get().getDailyCollectionAmountRec());
+                                    BigDecimal weeklyAmount = amountToBeCollected.add(collectionSummary.get().getWeeklyCollectionAmountRec());
+                                    BigDecimal monthlyAmount = amountToBeCollected.add(collectionSummary.get().getMonthlyCollectionAmountRec());
+                                    BigDecimal yearlyAmount = amountToBeCollected.add(collectionSummary.get().getYearlyCollectionAmountRec());
 
                                     if ((amountToBeCollected.add(collectionSummary.get().getTotalCollectionAmountRec())).compareTo(collectionSummary.get().getLoanAmount()) > 0) {
+                                        log.info("Total collection amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
                                         break;
                                     }
 
                                     if (yearlyAmount.compareTo(collectionSummary.get().getYearlyLimitAmount()) > 0) {
+                                        log.info("Total Yearly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
                                         break;
                                     }
 
                                     if (weeklyAmount.compareTo(collectionSummary.get().getWeeklyLimitAmount()) > 0) {
+                                        log.info("Total Weekly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
                                         break;
                                     }
 
                                     if (monthlyAmount.compareTo(collectionSummary.get().getMonthlyLimitAmount()) > 0) {
+                                        log.info("Total Monthly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
                                         break;
                                     }
 
                                     if (dailyAmount.compareTo(collectionSummary.get().getDailyLimitAmount()) > 0) {
+                                        log.info("Total Daily amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
                                         break;
                                     }
                                     try {
@@ -226,7 +228,8 @@ public class RazorpayServiceImpl implements RazorpayService {
                             Optional<TransactionDetail> transactionDetail = transactionRepository.findTransactionById(item.getId());
                             if (transactionDetail.isEmpty()) {
                                 log.info("Initiating saving transactions for loanId: {}", loan.getLoanId() + " accountId " + loanAccountMapping.getAccountId());
-                                paymentTransactionService.savePaymentAsTransaction(item, loanAccountMapping.getAccountId(), loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
+                                log.info("Transaction amount {}", BigDecimal.valueOf(item.getAmount() / 100));
+                                paymentTransactionService.saveRazorpayPaymentAsTransaction(item, loanAccountMapping.getAccountId(), loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
                             }
                         } catch (JsonProcessingException e) {
                             log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId(), e);
@@ -305,7 +308,7 @@ public class RazorpayServiceImpl implements RazorpayService {
         RazorpayTransferMap map = new RazorpayTransferMap();
         map.setAccount(funderAccountId);
         map.setCurrency(transactionDetail.getCurrency());
-        map.setAmount(amountToBeCollected.intValue());
+        map.setAmount(amountToBeCollected.multiply(new BigDecimal(100)).intValue());
 
         return transferPayment(map, transactionDetail.getTransactionId(), loanAccountMapping);
     }

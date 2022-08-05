@@ -1,5 +1,6 @@
 package com.sts.merchant.payment.service.serviceImpl;
 
+import com.cashfree.lib.pg.domains.response.Settlement;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sts.merchant.core.enums.Transaction;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -27,10 +29,11 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
 
     @Transactional
     @Override
-    public void savePaymentAsTransaction(Item item, String accountId, Integer loanId, Integer loanAccountMapId) throws JsonProcessingException {
+    public void saveRazorpayPaymentAsTransaction(Item item, String accountId, Integer loanId, Integer loanAccountMapId) throws JsonProcessingException {
         TransactionDetail transactionDetail = new TransactionDetail();
         transactionDetail.setTransactionId(item.getId());
-        transactionDetail.setTransactionAmount(BigDecimal.valueOf(item.getAmount()));
+        System.out.println("Transaction Amount " + BigDecimal.valueOf(item.getAmount() / 100));
+        transactionDetail.setTransactionAmount(BigDecimal.valueOf(item.getAmount() / 100));
         transactionDetail.setTransactionStatus(Transaction.CAPTURED.toString());
         transactionDetail.setLoanAccountMapId(loanAccountMapId);
         transactionDetail.setTransactionTax(item.getTax());
@@ -44,6 +47,22 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
         transactionDetail.setBankName(item.getBank());
         transactionDetail.setContactNumber(item.getContact());
         transactionDetail.setEmailId(item.getEmail());
+        transactionDetail.setResponse(objectMapper.writeValueAsString(item));
+        transactionRepository.save(transactionDetail);
+    }
+
+    @Override
+    public void saveCashFreePaymentAsTransaction(Settlement item, String accountId, Integer loanId, Integer loanAccountMapId) throws JsonProcessingException {
+        TransactionDetail transactionDetail = new TransactionDetail();
+        transactionDetail.setTransactionId(item.getId());
+        transactionDetail.setTransactionAmount(item.getTotalTxAmount());
+        transactionDetail.setTransactionStatus(Transaction.CAPTURED.toString());
+        transactionDetail.setLoanAccountMapId(loanAccountMapId);
+//        transactionDetail.setTransactionDate(item.getSettledOn());
+        transactionDetail.setAccountId(accountId);
+        transactionDetail.setLoanId(loanId);
+//        transactionDetail.setContactNumber(item.getCustomerPhone());
+//        transactionDetail.setEmailId(item.getCustomerEmail());
         transactionDetail.setResponse(objectMapper.writeValueAsString(item));
         transactionRepository.save(transactionDetail);
     }
