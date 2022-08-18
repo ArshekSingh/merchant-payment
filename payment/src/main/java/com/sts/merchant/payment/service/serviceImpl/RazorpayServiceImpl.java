@@ -74,7 +74,7 @@ public class RazorpayServiceImpl implements RazorpayService {
                 Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loanDetail.getLoanId());
                 if (collectionSummary.isPresent()) {
                     //Fetch the collection sequence time
-                    Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loanDetail.getLoanId(), Collection.COLLECTED.toString());
+                    Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loanDetail.getLoanId());
                     Integer collectionSequence;
                     //Set sequence incremented by 1
                     collectionSequence = collectionSequenceCount.map(integer -> integer + 1).orElse(1);
@@ -122,11 +122,11 @@ public class RazorpayServiceImpl implements RazorpayService {
                                         Response<RazorpayTransferResponse> transferResponse = transferFundsToParallelCap(transaction, amountToBeCollected, loanDetail.getFunderAccountId(), accountMapping);
                                         if (transferResponse.getStatus().is2xxSuccessful()) {
                                             //put these statuses in enum
-                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getCollectionDetailPK().getCollectionSequence());
+                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
                                             transactionRepository.updateTransactionStatusById(Transaction.PROCESSED.toString(), transaction.getId());
                                             log.info("Collection successful for loan :{}", loanDetail.getLoanAmount() + " account :" + accountMapping.getAccountId() + " TransactionId :" + collectionDetail.getTransactionId());
                                         } else {
-                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getCollectionDetailPK().getCollectionSequence());
+                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
                                             log.error("Error in collecting for loan :{}", loanDetail.getLoanId() + " account :" + accountMapping.getAccountId());
                                         }
                                     } catch (Exception exception) {

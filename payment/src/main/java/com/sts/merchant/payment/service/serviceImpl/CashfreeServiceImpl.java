@@ -3,11 +3,8 @@ package com.sts.merchant.payment.service.serviceImpl;
 import com.cashfree.lib.constants.Constants;
 import com.cashfree.lib.pg.clients.Pg;
 import com.cashfree.lib.pg.clients.Settlements;
-import com.cashfree.lib.pg.clients.Transactions;
 import com.cashfree.lib.pg.domains.request.ListSettlementsRequest;
-import com.cashfree.lib.pg.domains.request.ListTransactionsRequest;
 import com.cashfree.lib.pg.domains.response.ListSettlementsResponse;
-import com.cashfree.lib.pg.domains.response.ListTransactionsResponse;
 import com.cashfree.lib.pg.domains.response.Settlement;
 import com.cashfree.lib.pg.domains.response.Transaction;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,16 +18,22 @@ import com.sts.merchant.payment.service.CashfreeService;
 import com.sts.merchant.payment.service.CollectionService;
 import com.sts.merchant.payment.service.PaymentTransactionService;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import javax.transaction.Transactional;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -44,6 +47,9 @@ public class CashfreeServiceImpl implements CashfreeService {
 
     @Value("${app.encryption.secret}")
     String secretKey;
+
+    @Autowired
+    RestTemplate restTemplate;
 
     @Autowired
     private CollectionService collectionService;
@@ -81,19 +87,21 @@ public class CashfreeServiceImpl implements CashfreeService {
 
                             if (transactionDetail.isPresent()) {
                                 try {
-                                    Settlements settlements = new Settlements(pg);
+//                                    Settlements settlements = new Settlements(pg);
                                     ListSettlementsRequest settlementsRequest = new ListSettlementsRequest();
-                                    settlementsRequest.setStartDate(transactionDetail.get().getTransactionDate());
-                                    settlementsRequest.setEndDate(LocalDateTime.of(2022, 8, 3, 12, 0));
-                                    ListSettlementsResponse response = settlements.fetchAllSettlements(settlementsRequest);
-                                    List<Settlement> settlementList = response.getSettlements();
-                                    if (!settlementList.isEmpty()) {
-                                        mapPaymentsAndRecordTransactions(loans.get(), settlementList, loanAccountMappings.get());
-                                    } else {
-                                        log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
-                                    }
-                                    log.info("total payments fetched :{}", settlementList.size());
-                                    fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
+                                    settlementsRequest.setStartDate(loan.getPaymentDate());
+                                    settlementsRequest.setEndDate(LocalDateTime.now());
+                                    String response = fetchCashfreeSettlements();
+                                    log.info("response:{}", response);
+//                                    ListSettlementsResponse response = settlements.fetchAllSettlements(settlementsRequest);
+//                                    List<Settlement> settlementList = response.getSettlements();
+//                                    if (!settlementList.isEmpty()) {
+//                                        mapPaymentsAndRecordTransactions(loans.get(), settlementList, loanAccountMappings.get());
+//                                    } else {
+//                                        log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
+//                                    }
+//                                    log.info("total payments fetched :{}", settlementList.size());
+//                                    fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
                                 } catch (Exception e) {
                                     log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId(), e);
                                     e.printStackTrace();
@@ -139,6 +147,25 @@ public class CashfreeServiceImpl implements CashfreeService {
     @Override
     public Response transferPayment(Transaction transaction, String transactionId, LoanAccountMapping loanAccountMapping) {
         return null;
+    }
+
+    private String fetchCashfreeSettlements() throws IOException {
+        OkHttpClient client = new OkHttpClient().newBuilder()
+                .build();
+        MediaType mediaType = MediaType.parseMediaType("text/plain");
+        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("appId", "1916997e085a9d3cc0e00ad2a6996191")
+                .addFormDataPart("secretKey", "7fae0d71487d60c347207dd8c1ee025bc9cea48c")
+                .addFormDataPart("startDate", "2022-08-01")
+                .addFormDataPart("endDate", "2022-08-10")
+                .build();
+        Request request = new Request.Builder()
+                .url("https://api.cashfree.com/api/v1/settlements")
+                .method("POST", body)
+                .build();
+        okhttp3.Response response = client.newCall(request).execute();
+        System.out.println(response.body().string());
+        return response.body().toString();
     }
 
     private void mapPaymentsAndRecordTransactions(List<LoanDetail> loans, List<Settlement> settlementList, List<LoanAccountMapping> loanAccountMappings) {

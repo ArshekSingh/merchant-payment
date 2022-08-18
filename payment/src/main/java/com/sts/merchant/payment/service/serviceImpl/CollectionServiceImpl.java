@@ -21,15 +21,16 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class CollectionServiceImpl implements CollectionService {
+
     @Autowired
     private CollectionRepository collectionRepository;
-
 
     @Transactional
     @Override
     public CollectionDetail saveCollection(LoanDetail loanDetail, Integer collectionSequence, TransactionDetail transaction, BigDecimal amountToBeCollected) {
         Optional<CollectionDetail> existingCollection = collectionRepository.findExistingCollectionByTxn(loanDetail.getLoanId(), transaction.getTransactionId());
         if (existingCollection.isEmpty()) {
+            log.info("Saving Transaction Id : {}", transaction.getTransactionId());
             CollectionDetail collectionDetail = new CollectionDetail();
             collectionDetail.setCollectionAmount(amountToBeCollected);
             collectionDetail.setCollectionDate(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
