@@ -10,9 +10,6 @@ import com.sts.merchant.payment.response.RazorpayTransferResponse;
 import java.util.List;
 
 public interface CashfreeService {
-    void fetchPaymentsAndRecord();
-
-    void fetchTransactionsAndRoute(List<LoanDetail> loans, List<LoanAccountMapping> loanAccountMappings);
-
-    Response transferPayment(Transaction transaction, String transactionId, LoanAccountMapping loanAccountMapping);
+    void captureCashFreeSettlements();
+    void transferPaymentAndCollect();
 }

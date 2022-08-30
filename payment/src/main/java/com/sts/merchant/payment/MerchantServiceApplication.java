@@ -2,8 +2,12 @@ package com.sts.merchant.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.sts.merchant.core.entity.ClientInfoDetail;
 import com.sts.merchant.core.entity.LoanAccountMapping;
 import com.sts.merchant.core.entity.LoanDetail;
+import com.sts.merchant.core.enums.AccountType;
+import com.sts.merchant.core.enums.InfoType;
+import com.sts.merchant.core.repository.ClientInfoRepository;
 import com.sts.merchant.core.repository.LoanAccountRepository;
 import com.sts.merchant.core.repository.LoanDetailRepository;
 import com.sts.merchant.payment.utils.Crypto;
@@ -50,7 +54,7 @@ public class MerchantServiceApplication {
         SpringApplication.run(MerchantServiceApplication.class, args);
     }
 
-
+//
 //    private String getSaltString() {
 //        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 //        StringBuilder salt = new StringBuilder();
@@ -63,6 +67,9 @@ public class MerchantServiceApplication {
 //        return saltStr;
 //
 //    }
+//
+//    @Autowired
+//    ClientInfoRepository clientInfoRepository;
 //
 //    @Autowired
 //    LoanDetailRepository loanDetailRepository;
@@ -81,7 +88,7 @@ public class MerchantServiceApplication {
 //        loanDetail.setCreatedOn(LocalDateTime.now());
 //        loanDetail.setCreatedBy("PARALLEL_CAP_TEST");
 //        loanDetail.setCapPercentage(10);
-//        loanDetail.setFunderAccountId("acc_K0p7vRKjOTR3St");
+//        loanDetail.setFunderAccountId("");
 //        loanDetail.setDailyLimitAmount(BigDecimal.valueOf(5000));
 //        loanDetail.setMonthlyLimitAmount(BigDecimal.valueOf(150000));
 //        loanDetail.setWeeklyLimitAmount(BigDecimal.valueOf(35000));
@@ -97,20 +104,48 @@ public class MerchantServiceApplication {
 //        LoanAccountMapping loanAccountMapping = new LoanAccountMapping();
 //        loanAccountMapping.setLoanId(loanDetail.getLoanId());
 //        loanAccountMapping.setStatus("A");
+//        loanAccountMapping.setBeneficiaryId("shubham1995");
+//        loanAccountMapping.setAccountType("C");
 //        loanAccountMapping.setLoanAccountMapId(1);
-//        loanAccountMapping.setAccountId("JfgeODLVGhtz4f");
-//        loanAccountMapping.setSalt(getSaltString());
+//        loanAccountMapping.setAccountId("DOC_CASHFREE");
 //        loanAccountMapping.setCreatedOn(LocalDateTime.now());
 //        loanAccountMapping.setCreatedBy("PARALLEL_CAP_TEST");
 //        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
-//        loanAccountMapping.setInfo1(Crypto.encrypt("rzp_live_FE2cV60B2wUEhA", secretKey, loanAccountMapping.getSalt()));
-//        loanAccountMapping.setInfo2(Crypto.encrypt("QADd80MqFrceY4Vw9YJbuWMr", secretKey, loanAccountMapping.getSalt()));
-//        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
 //
-//        System.out.println(loanAccountMapping.getInfo1() + "  ,,  " + loanAccountMapping.getInfo2());
+//        ClientInfoDetail pgClientInfoDetail = new ClientInfoDetail();
+//        pgClientInfoDetail.setSalt(getSaltString());
+//        pgClientInfoDetail.setLoanAccountMapId(1);
+//        pgClientInfoDetail.setAccountType(AccountType.CASHFREE.toString());
+//        pgClientInfoDetail.setInfoType(InfoType.PG.toString());
+//        pgClientInfoDetail.setCreatedOn(LocalDateTime.now());
+//        pgClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
+//        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
+//        pgClientInfoDetail.setInfo1(Crypto.encrypt("1916997e085a9d3cc0e00ad2a6996191", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo2(Crypto.encrypt("7fae0d71487d60c347207dd8c1ee025bc9cea48c", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
 //
-//        System.out.println(Crypto.decrypt(loanAccountMapping.getInfo1(), secretKey, loanAccountMapping.getSalt()));
-//        System.out.println(Crypto.decrypt(loanAccountMapping.getInfo2(), secretKey, loanAccountMapping.getSalt()));
+//        System.out.println(pgClientInfoDetail.getInfo1() + "  ,,  " + pgClientInfoDetail.getInfo2());
+//
+//        System.out.println(Crypto.decrypt(pgClientInfoDetail.getInfo1(), secretKey, pgClientInfoDetail.getSalt()));
+//        System.out.println(Crypto.decrypt(pgClientInfoDetail.getInfo2(), secretKey, pgClientInfoDetail.getSalt()));
+//
+//
+//        ClientInfoDetail payoutClientInfoDetail = new ClientInfoDetail();
+//        payoutClientInfoDetail.setSalt(getSaltString());
+//        payoutClientInfoDetail.setLoanAccountMapId(1);
+//        payoutClientInfoDetail.setAccountType(AccountType.CASHFREE.toString());
+//        payoutClientInfoDetail.setInfoType(InfoType.PAYOUTS.toString());
+//        payoutClientInfoDetail.setCreatedOn(LocalDateTime.now());
+//        payoutClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
+//        payoutClientInfoDetail = clientInfoRepository.save(payoutClientInfoDetail);
+//        payoutClientInfoDetail.setInfo1(Crypto.encrypt("CF191699CC45DR8CULKD6QQTF7Q0", secretKey, payoutClientInfoDetail.getSalt()));
+//        payoutClientInfoDetail.setInfo2(Crypto.encrypt("4abd42fd0db53f53309dbf622b2738bf35e0a241", secretKey, payoutClientInfoDetail.getSalt()));
+//        payoutClientInfoDetail = clientInfoRepository.save(payoutClientInfoDetail);
+//
+//        System.out.println(payoutClientInfoDetail.getInfo1() + "  ,,  " + payoutClientInfoDetail.getInfo2());
+//
+//        System.out.println(Crypto.decrypt(payoutClientInfoDetail.getInfo1(), secretKey, payoutClientInfoDetail.getSalt()));
+//        System.out.println(Crypto.decrypt(payoutClientInfoDetail.getInfo2(), secretKey, payoutClientInfoDetail.getSalt()));
 //
 //
 //    }

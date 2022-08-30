@@ -5,9 +5,7 @@ import com.razorpay.Payment;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Transfer;
-import com.sts.merchant.core.enums.Collection;
-import com.sts.merchant.core.enums.Loan;
-import com.sts.merchant.core.enums.Transaction;
+import com.sts.merchant.core.enums.*;
 import com.sts.merchant.core.entity.*;
 import com.sts.merchant.core.repository.*;
 import com.sts.merchant.core.response.Response;
@@ -44,6 +42,7 @@ public class RazorpayServiceImpl implements RazorpayService {
     private final LoanDetailRepository loanDetailRepository;
     private final TransactionRepository transactionRepository;
     private final LoanAccountRepository loanAccountRepository;
+    private final ClientInfoRepository clientInfoRepository;
 
     @Value("${app.encryption.secret}")
     String secretKey;
@@ -54,12 +53,13 @@ public class RazorpayServiceImpl implements RazorpayService {
     @Autowired
     private PaymentTransactionService paymentTransactionService;
 
-    public RazorpayServiceImpl(CollectionSummaryRepository collectionSummaryRepository, CollectionRepository collectionRepository, LoanDetailRepository loanDetailRepository, TransactionRepository transactionRepository, LoanAccountRepository loanAccountRepository) {
+    public RazorpayServiceImpl(CollectionSummaryRepository collectionSummaryRepository, CollectionRepository collectionRepository, LoanDetailRepository loanDetailRepository, TransactionRepository transactionRepository, LoanAccountRepository loanAccountRepository, ClientInfoRepository clientInfoRepository) {
         this.collectionSummaryRepository = collectionSummaryRepository;
         this.collectionRepository = collectionRepository;
         this.loanDetailRepository = loanDetailRepository;
         this.transactionRepository = transactionRepository;
         this.loanAccountRepository = loanAccountRepository;
+        this.clientInfoRepository = clientInfoRepository;
     }
 
     @Autowired
@@ -153,56 +153,61 @@ public class RazorpayServiceImpl implements RazorpayService {
     @Transactional
     public void fetchPaymentsAndRecord() {
         try {
-            //fetch active loans tagged to this account
+            //fetch active loans
             Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
             if (loans.isPresent() && !loans.get().isEmpty()) {
                 for (LoanDetail loan : loans.get()) {
                     //fetch active loan accounts for this loan
-                    Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId());
+                    Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId(), AccountType.RAZORPAY.toString());
                     if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
                         for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
                             //Fetch Last transaction for this account and vendor
                             Optional<TransactionDetail> transactionDetail = transactionRepository.findLastTransactionByLoanAndAccount(loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
                             //Fetch razorpay payments
-                            log.info("Initiating payment fetch at :{}", new Timestamp(System.currentTimeMillis()) + " for loan :" + loan.getLoanId() + ", accountId : " + loanAccountMapping.getAccountId());
+                            log.info("Initiating last payment fetch at :{}", new Timestamp(System.currentTimeMillis()) + " for loan :" + loan.getLoanId() + ", accountId : " + loanAccountMapping.getAccountId());
 
-                            RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(loanAccountMapping.getInfo1(), secretKey, loanAccountMapping.getSalt()),
-                                    Crypto.decrypt(loanAccountMapping.getInfo2(), secretKey, loanAccountMapping.getSalt()));
-                            if (transactionDetail.isPresent()) {
-                                try {
-                                    int skip = 0;
-                                    boolean recurse = true;
-                                    List<Payment> totalPayments = new ArrayList<>();
-                                    Long from = transactionDetail.get().getTransactionDate().toInstant(ZoneOffset.UTC).toEpochMilli();
-                                    List<Payment> payments = fetchAllAvailableTransactions(from, razorpayClient, skip, recurse, totalPayments);
-                                    if (!payments.isEmpty()) {
-                                        mapPaymentsAndRecordTransactions(loans.get(), payments, loanAccountMappings.get());
-                                    } else {
-                                        log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
+                            Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.RAZORPAY.toString(), InfoType.PG.toString());
+                            if (clientInfoDetail.isPresent()) {
+                                RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt()),
+                                        Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt()));
+                                if (transactionDetail.isPresent()) {
+                                    try {
+                                        int skip = 0;
+                                        boolean recurse = true;
+                                        List<Payment> totalPayments = new ArrayList<>();
+                                        Long from = transactionDetail.get().getTransactionDate().toInstant(ZoneOffset.UTC).toEpochMilli();
+                                        List<Payment> payments = fetchAllAvailableTransactions(from, razorpayClient, skip, recurse, totalPayments);
+                                        if (!payments.isEmpty()) {
+                                            mapPaymentsAndRecordTransactions(loans.get(), payments, loanAccountMappings.get());
+                                        } else {
+                                            log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
+                                        }
+                                        log.info("total payments fetched :{}", payments.size());
+                                        fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
+                                    } catch (RazorpayException e) {
+                                        log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId(), e);
+                                        e.printStackTrace();
                                     }
-                                    log.info("total payments fetched :{}", payments.size());
-                                    fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
-                                } catch (RazorpayException e) {
-                                    log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId(), e);
-                                    e.printStackTrace();
+                                } else {
+                                    try {
+                                        int skip = 0;
+                                        boolean recurse = true;
+                                        List<Payment> totalPayments = new ArrayList<>();
+                                        Long from = loans.get().get(0).getPaymentDate().toInstant(ZoneOffset.UTC).toEpochMilli();
+                                        List<Payment> payments = fetchAllAvailableTransactions(from, razorpayClient, skip, recurse, totalPayments);
+                                        if (payments.isEmpty()) {
+                                            log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
+                                        } else {
+                                            mapPaymentsAndRecordTransactions(loans.get(), payments, loanAccountMappings.get());
+                                        }
+                                        fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
+                                    } catch (RazorpayException e) {
+                                        log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId(), e);
+                                        e.printStackTrace();
+                                    }
                                 }
                             } else {
-                                try {
-                                    int skip = 0;
-                                    boolean recurse = true;
-                                    List<Payment> totalPayments = new ArrayList<>();
-                                    Long from = loans.get().get(0).getPaymentDate().toInstant(ZoneOffset.UTC).toEpochMilli();
-                                    List<Payment> payments = fetchAllAvailableTransactions(from, razorpayClient, skip, recurse, totalPayments);
-                                    if (payments.isEmpty()) {
-                                        log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
-                                    } else {
-                                        mapPaymentsAndRecordTransactions(loans.get(), payments, loanAccountMappings.get());
-                                    }
-                                    fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
-                                } catch (RazorpayException e) {
-                                    log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId(), e);
-                                    e.printStackTrace();
-                                }
+                                log.info("Client info not found! for loanId: {}", loan.getLoanId() + " accountId: " + loanAccountMapping.getLoanAccountMapId());
                             }
                         }
                     } else {
@@ -273,24 +278,33 @@ public class RazorpayServiceImpl implements RazorpayService {
         try {
             log.info("Initiating payment transfer for transactionId : {}", transactionId);
             log.info("Payment transfer at : {}", new Timestamp(System.currentTimeMillis()));
-            RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(loanAccountMapping.getInfo1(), secretKey, loanAccountMapping.getSalt()),
-                    Crypto.decrypt(loanAccountMapping.getInfo2(), secretKey, loanAccountMapping.getSalt()));
-            JSONObject request = new JSONObject();
 
-            JSONArray transfers = new JSONArray();
+            Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.RAZORPAY.toString(), InfoType.PG.toString());
+            if (clientInfoDetail.isPresent()) {
 
-            JSONObject transfer = new JSONObject();
-            transfer.put("amount", map.getAmount());
-            transfer.put("currency", map.getCurrency());
-            transfer.put("account", map.getAccount());
+                RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt()),
+                        Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt()));
+                JSONObject request = new JSONObject();
 
-            transfers.put(transfer);
-            request.put("transfers", transfers);
+                JSONArray transfers = new JSONArray();
 
-            List<Transfer> razorPayTransferResponse = razorpayClient.payments.transfer(transactionId, request);
-            log.info("Payment Completed for transactionId: {}", transactionId);
-            log.info("Payment completed at : {}", new Timestamp(System.currentTimeMillis()));
-            return new Response<>("Transaction Completed Successfully", HttpStatus.OK, razorPayTransferResponse);
+                JSONObject transfer = new JSONObject();
+                transfer.put("amount", map.getAmount());
+                transfer.put("currency", map.getCurrency());
+                transfer.put("account", map.getAccount());
+
+                transfers.put(transfer);
+                request.put("transfers", transfers);
+
+                List<Transfer> razorPayTransferResponse = razorpayClient.payments.transfer(transactionId, request);
+                log.info("Payment Completed for transactionId: {}", transactionId);
+                log.info("Payment completed at : {}", new Timestamp(System.currentTimeMillis()));
+                return new Response<>("Transaction Completed Successfully", HttpStatus.OK, razorPayTransferResponse);
+
+            } else {
+                log.error("Client info not found for loanAccount : {} ", loanAccountMapping.getLoanAccountMapId());
+                return new Response<>("Client info not found for loanAccount", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
 
         } catch (RazorpayException exception) {
             log.error("razorpayException for transactionId : {} ", transactionId, exception);

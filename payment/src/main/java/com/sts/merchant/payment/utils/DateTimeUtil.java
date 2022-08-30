@@ -33,6 +33,10 @@ public class DateTimeUtil {
         return StringUtils.hasText(localDateTimeString) ? LocalDateTime.parse(localDateTimeString, dateTimeFormatter) : null;
     }
 
+    public static LocalDateTime localDateTimeToCashfreeDateTime(String localDateTimeString) {
+        return StringUtils.hasText(localDateTimeString) ? LocalDateTime.parse(localDateTimeString, dateTimeFormatter) : null;
+    }
+
     public static LocalDateTime stringToDateTime(String localDateTimeString, String format) {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(format);
         return StringUtils.hasText(localDateTimeString) ? LocalDateTime.parse(localDateTimeString, dateTimeFormatter) : null;
@@ -48,10 +52,10 @@ public class DateTimeUtil {
         return StringUtils.hasText(localDateString) ? LocalDate.parse(localDateString, dateFormatter) : null;
     }
 
-	public static String dateTimeToString(LocalDateTime localDateTime, String format) {
-		DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern(format);
-		return localDateTime != null ? dateFormat.format(localDateTime) : null;
-	}
+    public static String dateTimeToString(LocalDateTime localDateTime, String format) {
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern(format);
+        return localDateTime != null ? dateFormat.format(localDateTime) : null;
+    }
 
     public static Date parseDate(String date, String format) {
         try {
@@ -76,6 +80,17 @@ public class DateTimeUtil {
             return sdf.format(date);
         }
         return null;
+    }
+
+    public static String localDateTimeToString(LocalDateTime dateTime) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return dateTime.format(formatter);
+    }
+
+
+    public static LocalDateTime stringToLocalDateTime(String dateTime) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return LocalDateTime.parse(dateTime, formatter);
     }
 
     public static LocalDate getLocalDateFromDate(Date date) {
