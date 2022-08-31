@@ -31,7 +31,7 @@ import java.util.*;
 
 @Slf4j
 @Service
-public class CashfreeServiceImpl implements CashfreeService {
+public class CashFreeServiceImpl implements CashfreeService {
     private final SettlementRepository settlementRepository;
     private final CollectionSummaryRepository collectionSummaryRepository;
     private final CollectionRepository collectionRepository;
@@ -40,18 +40,18 @@ public class CashfreeServiceImpl implements CashfreeService {
     private final ClientInfoRepository clientInfoRepository;
 
     @Value("${app.encryption.secret}")
-    String secretKey;
+    private String secretKey;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Autowired
-    SettlementService settlementService;
+    private SettlementService settlementService;
 
     @Autowired
     private CollectionService collectionService;
 
-    public CashfreeServiceImpl(SettlementRepository settlementRepository, CollectionSummaryRepository collectionSummaryRepository, CollectionRepository collectionRepository, LoanDetailRepository loanDetailRepository, TransactionRepository transactionRepository, LoanAccountRepository loanAccountRepository, ClientInfoRepository clientInfoRepository) {
+    public CashFreeServiceImpl(SettlementRepository settlementRepository, CollectionSummaryRepository collectionSummaryRepository, CollectionRepository collectionRepository, LoanDetailRepository loanDetailRepository, TransactionRepository transactionRepository, LoanAccountRepository loanAccountRepository, ClientInfoRepository clientInfoRepository) {
         this.settlementRepository = settlementRepository;
         this.collectionSummaryRepository = collectionSummaryRepository;
         this.collectionRepository = collectionRepository;
@@ -150,7 +150,7 @@ public class CashfreeServiceImpl implements CashfreeService {
     }
 
     @Override
-    public void transferPaymentAndCollect() {
+    public void transferPaymentByPayouts() {
         log.info("Initiating settlements fetch and money transfer");
         try {
             //fetch active loans
@@ -174,7 +174,10 @@ public class CashfreeServiceImpl implements CashfreeService {
                                 Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.CASHFREE.toString(), InfoType.PAYOUTS.toString());
                                 if (clientInfoDetail.isPresent()) {
                                     log.info("Fetching settlements for loanID: {}", loan.getLoanId() + ", account: " + loanAccountMapping.getLoanAccountMapId());
-                                    Optional<List<SettlementDetail>> settlements = settlementRepository.findCapturedSettlementsByLoanAndAccount(loan.getLoanId(), loanAccountMapping.getLoanAccountMapId(), Transaction.CAPTURED.toString());
+                                    List<String> status = new ArrayList<>();
+                                    status.add(Transaction.INCOMPLETE.toString());
+                                    status.add(Transaction.CAPTURED.toString());
+                                    Optional<List<SettlementDetail>> settlements = settlementRepository.findSettlementsByStatus(loan.getLoanId(), loanAccountMapping.getLoanAccountMapId(), status);
                                     if (settlements.isPresent() && !settlements.get().isEmpty()) {
                                         log.info("Fetching settlements success for loanID: {}", loan.getLoanId() + ", account: " + loanAccountMapping.getLoanAccountMapId());
                                         String clientId = Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt());
@@ -223,6 +226,11 @@ public class CashfreeServiceImpl implements CashfreeService {
                                                                 //Collect the amount to be collected from balance
                                                                 CollectionDetail collectionDetail = collectionService.saveCollection(loan, collectionSequence, settlementDetail, amountToBeCollected);
                                                                 collectionSequence++;
+
+                                                                //if the collection is existing and incomplete, subtract the amount with already collected money.
+                                                                if (Objects.equals(collectionDetail.getStatus(), Transaction.INCOMPLETE.toString())) {
+                                                                    amountToBeCollected = amountToBeCollected.subtract(collectionDetail.getCollectionAmount());
+                                                                }
                                                                 if (amountToBeCollected.compareTo(BigDecimal.ONE) < 0) {
                                                                     log.error("Cannot collect amount less than 1.0 rupee loanId: {}", loan.getLoanId() + " account: " + loanAccountMapping.getLoanAccountMapId() + " settlement Id: " + settlementDetail.getSettlementId());
                                                                     collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
@@ -234,6 +242,7 @@ public class CashfreeServiceImpl implements CashfreeService {
                                                                     CashfreeTransferResponse transferResponse = transferMoneyAsync(tokenResponse.getData().getToken(), transferRequest);
                                                                     if (!transferResponse.getSubCode().isEmpty() && Long.parseLong(transferResponse.getSubCode()) < 300) {
                                                                         collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
+                                                                        collectionRepository.updateCashfreeTransferIdByCollectionId(transferRequest.getTransferId(), loan.getLoanId(), settlementDetail.getSettlementId());
                                                                         settlementRepository.updateSettlementStatusById(Transaction.PROCESSED.toString(), settlementDetail.getId());
                                                                         log.info("Collection successful for loan :{}", loan.getLoanAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
                                                                     } else {
@@ -258,6 +267,7 @@ public class CashfreeServiceImpl implements CashfreeService {
                                                                     CashfreeTransferResponse transferResponse = transferMoneyAsync(tokenResponse.getData().getToken(), transferRequest);
                                                                     if (!transferResponse.getSubCode().isEmpty() && Long.parseLong(transferResponse.getSubCode()) < 300) {
                                                                         collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
+                                                                        collectionRepository.updateCashfreeTransferIdByCollectionId(transferRequest.getTransferId(), loan.getLoanId(), settlementDetail.getSettlementId());
                                                                         settlementRepository.updateSettlementStatusById(Transaction.INCOMPLETE.toString(), settlementDetail.getId());
                                                                         log.info("Collection successful for loan :{}", loan.getLoanAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
                                                                     } else {
@@ -299,6 +309,57 @@ public class CashfreeServiceImpl implements CashfreeService {
             }
         } catch (Exception exception) {
             log.error("Error in collecting loans! Please check your code");
+        }
+    }
+
+    @Override
+    public void checkPaymentTransferStatus() {
+        log.info("Initiating payment transfers status enquiry");
+        try {
+            //fetch active loans
+            Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
+            if (loans.isPresent() && !loans.get().isEmpty()) {
+                for (LoanDetail loan : loans.get()) {
+                    //fetch active cashFree loan accounts for this loan
+                    Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId(), AccountType.CASHFREE.toString());
+                    if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
+                        for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
+
+                            Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.CASHFREE.toString(), InfoType.PAYOUTS.toString());
+                            if (clientInfoDetail.isPresent()) {
+                                List<String> status = new ArrayList<>();
+                                status.add(Transaction.PROCESSED.toString());
+                                status.add(Transaction.INCOMPLETE.toString());
+
+                                String clientId = Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt());
+                                String clientSecret = Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt());
+
+                                CashfreeAuthorizeResponse tokenResponse = authorizePayouts(clientId, clientSecret);
+                                if (Objects.equals(tokenResponse.getSubCode(), "200")) {
+                                    Optional<List<SettlementDetail>> settlements = settlementRepository.findSettlementsByStatus(loan.getLoanId(), loanAccountMapping.getLoanAccountMapId(), status);
+                                    if (settlements.isPresent() && !settlements.get().isEmpty()) {
+                                        for (SettlementDetail settlementDetail : settlements.get()) {
+                                            Optional<List<CollectionDetail>> collections = collectionRepository.findCollectionBySettlementId(loan.getLoanId(), settlementDetail.getSettlementId());
+                                            if (collections.isPresent() && !collections.get().isEmpty()) {
+                                                for (CollectionDetail collectionDetail : collections.get()) {
+                                                    TransferStatusResponse transferStatusResponse = getTransferStatus(tokenResponse.getData().getToken(), collectionDetail.getTransferId());
+                                                    if (Objects.equals(transferStatusResponse.getSubCode(), "200")) {
+
+                                                    } else {
+
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception exception) {
+
         }
     }
 
@@ -389,6 +450,32 @@ public class CashfreeServiceImpl implements CashfreeService {
             balanceResponse.setMessage(balanceResponse.getMessage());
         }
         return balanceResponse;
+    }
+
+    private TransferStatusResponse getTransferStatus(String token, String transferId) throws IOException {
+        TransferStatusResponse transferStatusResponse;
+        try {
+            OkHttpClient client = new OkHttpClient().newBuilder()
+                    .build();
+            Request request = new Request.Builder()
+                    .url(Constants.CashFreeConstants.CASH_FREE_PAYOUT_LIVE_URL + "getTransferStatus?transferId=" + transferId)
+                    .header("Authorization", "Bearer " + token)
+                    .header("Content-Type", "application/json")
+                    .build();
+            okhttp3.Response response = client.newCall(request).execute();
+            transferStatusResponse = objectMapper.readValue(response.body().string(), new TypeReference<>() {
+            });
+        } catch (IOException ioException) {
+            transferStatusResponse = new TransferStatusResponse();
+            transferStatusResponse.setSubCode("400");
+            transferStatusResponse.setMessage(transferStatusResponse.getMessage());
+            return transferStatusResponse;
+        } catch (Exception exception) {
+            transferStatusResponse = new TransferStatusResponse();
+            transferStatusResponse.setSubCode("400");
+            transferStatusResponse.setMessage(transferStatusResponse.getMessage());
+        }
+        return transferStatusResponse;
     }
 
     private CashfreeAuthorizeResponse authorizePayouts(String clientId, String clientSecret) {
