@@ -113,7 +113,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                             } else {
                                 //Fetch client info
                                 if (clientInfoDetail.isPresent()) {
-                                    String startDate = DateTimeUtil.localDateTimeToString(loan.getPaymentDate());
+                                    String startDate = DateTimeUtil.localDateTimeToString(loan.getDisbursementDate());
                                     String endDate = DateTimeUtil.localDateTimeToString(LocalDateTime.now());
                                     String clientId = Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt());
                                     String clientSecret = Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt());
@@ -161,7 +161,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                     Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loan.getLoanId());
                     if (collectionSummary.isPresent()) {
                         //Fetch the collection sequence time
-                        Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loan.getLoanId());
+                        Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount();
                         Integer collectionSequence;
                         //Set sequence incremented by 1
                         collectionSequence = collectionSequenceCount.map(integer -> integer + 1).orElse(1);
@@ -191,9 +191,8 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                         CashfreeBalanceResponse balanceResponse = getPayoutsBalance(tokenResponse.getData().getToken());
                                                         if (Objects.equals(balanceResponse.getSubCode(), "200")) {
                                                             BigDecimal availableBalance = BigDecimal.valueOf(Double.parseDouble(balanceResponse.getData().getAvailableBalance()));
-                                                            BigDecimal amountToBeCollected = Constants.percentage(settlementDetail.getSettlementAmount(), BigDecimal.valueOf(loan.getCapPercentage()));
+                                                            BigDecimal amountToBeCollected = Constants.percentage(settlementDetail.getSettlementAmount(), BigDecimal.valueOf(loan.getPgShare()));
                                                             BigDecimal dailyAmount = amountToBeCollected.add(collectionSummary.get().getDailyCollectionAmountRec());
-                                                            BigDecimal weeklyAmount = amountToBeCollected.add(collectionSummary.get().getWeeklyCollectionAmountRec());
                                                             BigDecimal monthlyAmount = amountToBeCollected.add(collectionSummary.get().getMonthlyCollectionAmountRec());
                                                             BigDecimal yearlyAmount = amountToBeCollected.add(collectionSummary.get().getYearlyCollectionAmountRec());
 
@@ -201,27 +200,10 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                                 log.info("Total collection amount exceeding! Aborting collection for settlement: {}", settlementDetail.getSettlementId() + ", loanId: " + loan.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
                                                                 break;
                                                             }
-
-                                                            if (yearlyAmount.compareTo(collectionSummary.get().getYearlyLimitAmount()) > 0) {
-                                                                log.info("Total Yearly amount exceeding! Aborting collection for settlement: {}", settlementDetail.getSettlementId() + ", loanId: " + loan.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
-                                                                break;
-                                                            }
-
-                                                            if (weeklyAmount.compareTo(collectionSummary.get().getWeeklyLimitAmount()) > 0) {
-                                                                log.info("Total Weekly amount exceeding! Aborting collection for settlement: {}", settlementDetail.getSettlementId() + ", loanId: " + loan.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
-                                                                break;
-                                                            }
-
                                                             if (monthlyAmount.compareTo(collectionSummary.get().getMonthlyLimitAmount()) > 0) {
                                                                 log.info("Total Monthly amount exceeding! Aborting collection for settlement: {}", settlementDetail.getSettlementId() + ", loanId: " + loan.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
                                                                 break;
                                                             }
-
-                                                            if (dailyAmount.compareTo(collectionSummary.get().getDailyLimitAmount()) > 0) {
-                                                                log.info("Total Daily amount exceeding! Aborting collection for settlement: {}", settlementDetail.getSettlementId() + ", loanId: " + loan.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
-                                                                break;
-                                                            }
-
                                                             if (availableBalance.compareTo(amountToBeCollected) > 0) {
                                                                 //Collect the amount to be collected from balance
                                                                 CollectionDetail collectionDetail = collectionService.saveCollection(loan, collectionSequence, settlementDetail, amountToBeCollected);
@@ -244,7 +226,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                                         collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
                                                                         collectionRepository.updateCashfreeTransferIdByCollectionId(transferRequest.getTransferId(), loan.getLoanId(), settlementDetail.getSettlementId());
                                                                         settlementRepository.updateSettlementStatusById(Transaction.PROCESSED.toString(), settlementDetail.getId());
-                                                                        log.info("Collection successful for loan :{}", loan.getLoanAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
+                                                                        log.info("Collection successful for loan :{}", loan.getDisbursedAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
                                                                     } else {
                                                                         collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
                                                                         log.error("Error in collecting for loan :{}", loan.getLoanId() + " account :" + loanAccountMapping.getAccountId());
@@ -269,7 +251,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                                         collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
                                                                         collectionRepository.updateCashfreeTransferIdByCollectionId(transferRequest.getTransferId(), loan.getLoanId(), settlementDetail.getSettlementId());
                                                                         settlementRepository.updateSettlementStatusById(Transaction.INCOMPLETE.toString(), settlementDetail.getId());
-                                                                        log.info("Collection successful for loan :{}", loan.getLoanAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
+                                                                        log.info("Collection successful for loan :{}", loan.getDisbursedAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
                                                                     } else {
                                                                         collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
                                                                         log.error("Error in collecting for loan :{}", loan.getLoanId() + " account :" + loanAccountMapping.getAccountId() + " message: " + transferResponse.getMessage());
