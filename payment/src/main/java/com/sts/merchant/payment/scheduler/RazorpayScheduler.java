@@ -15,7 +15,7 @@ public class RazorpayScheduler {
 
     @Scheduled(fixedDelayString = "${app.scheduler.time}")
     public void fetchRazorpayPaymentsAndCollect() {
-        cashfreeService.transferPaymentByPayouts();
+//        cashfreeService.transferPaymentByPayouts();
 //        razorpayService.fetchPaymentsAndRecord();
     }
 }

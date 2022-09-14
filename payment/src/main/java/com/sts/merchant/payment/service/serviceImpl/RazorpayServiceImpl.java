@@ -86,9 +86,8 @@ public class RazorpayServiceImpl implements RazorpayService {
                             if (transactions.isPresent() && !transactions.get().isEmpty()) {
                                 transactionLoop:
                                 for (TransactionDetail transaction : transactions.get()) {
-                                    BigDecimal amountToBeCollected = transaction.getTransactionAmount().multiply(BigDecimal.valueOf(loanDetail.getCapPercentage())).divide(new BigDecimal(100), 2, RoundingMode.UP);
+                                    BigDecimal amountToBeCollected = transaction.getTransactionAmount().multiply(BigDecimal.valueOf(loanDetail.getPgShare())).divide(new BigDecimal(100), 2, RoundingMode.UP);
                                     BigDecimal dailyAmount = amountToBeCollected.add(collectionSummary.get().getDailyCollectionAmountRec());
-                                    BigDecimal weeklyAmount = amountToBeCollected.add(collectionSummary.get().getWeeklyCollectionAmountRec());
                                     BigDecimal monthlyAmount = amountToBeCollected.add(collectionSummary.get().getMonthlyCollectionAmountRec());
                                     BigDecimal yearlyAmount = amountToBeCollected.add(collectionSummary.get().getYearlyCollectionAmountRec());
 
@@ -97,34 +96,19 @@ public class RazorpayServiceImpl implements RazorpayService {
                                         break;
                                     }
 
-                                    if (yearlyAmount.compareTo(collectionSummary.get().getYearlyLimitAmount()) > 0) {
-                                        log.info("Total Yearly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
-                                        break;
-                                    }
-
-                                    if (weeklyAmount.compareTo(collectionSummary.get().getWeeklyLimitAmount()) > 0) {
-                                        log.info("Total Weekly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
-                                        break;
-                                    }
-
                                     if (monthlyAmount.compareTo(collectionSummary.get().getMonthlyLimitAmount()) > 0) {
                                         log.info("Total Monthly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
-                                        break;
-                                    }
-
-                                    if (dailyAmount.compareTo(collectionSummary.get().getDailyLimitAmount()) > 0) {
-                                        log.info("Total Daily amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
                                         break;
                                     }
                                     try {
                                         CollectionDetail collectionDetail = collectionService.saveCollection(loanDetail, collectionSequence, transaction, amountToBeCollected);
                                         collectionSequence++;
-                                        Response<RazorpayTransferResponse> transferResponse = transferFundsToParallelCap(transaction, amountToBeCollected, loanDetail.getFunderAccountId(), accountMapping);
+                                        Response<RazorpayTransferResponse> transferResponse = transferFundsToParallelCap(transaction, amountToBeCollected, accountMapping.getFunderAccountId(), accountMapping);
                                         if (transferResponse.getStatus().is2xxSuccessful()) {
                                             //put these statuses in enum
                                             collectionRepository.updateCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
                                             transactionRepository.updateTransactionStatusById(Transaction.PROCESSED.toString(), transaction.getId());
-                                            log.info("Collection successful for loan :{}", loanDetail.getLoanAmount() + " account :" + accountMapping.getAccountId() + " TransactionId :" + collectionDetail.getTransactionId());
+                                            log.info("Collection successful for loan :{}", loanDetail.getDisbursedAmount() + " account :" + accountMapping.getAccountId() + " TransactionId :" + collectionDetail.getTransactionId());
                                         } else {
                                             collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
                                             log.error("Error in collecting for loan :{}", loanDetail.getLoanId() + " account :" + accountMapping.getAccountId());
@@ -193,7 +177,7 @@ public class RazorpayServiceImpl implements RazorpayService {
                                         int skip = 0;
                                         boolean recurse = true;
                                         List<Payment> totalPayments = new ArrayList<>();
-                                        Long from = loans.get().get(0).getPaymentDate().toInstant(ZoneOffset.UTC).toEpochMilli();
+                                        Long from = loans.get().get(0).getDisbursementDate().toInstant(ZoneOffset.UTC).toEpochMilli();
                                         List<Payment> payments = fetchAllAvailableTransactions(from, razorpayClient, skip, recurse, totalPayments);
                                         if (payments.isEmpty()) {
                                             log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
