@@ -5,31 +5,37 @@ import com.razorpay.Payment;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Transfer;
-import com.sts.merchant.core.enums.*;
 import com.sts.merchant.core.entity.*;
+import com.sts.merchant.core.enums.*;
 import com.sts.merchant.core.repository.*;
 import com.sts.merchant.core.response.Response;
 import com.sts.merchant.payment.mapper.RazorpayFetchResponseMapper;
 import com.sts.merchant.payment.mapper.RazorpayTransferMap;
+import com.sts.merchant.payment.mapper.RzpSettlementMapper;
+import com.sts.merchant.payment.mapper.RzpTransferMapper;
 import com.sts.merchant.payment.response.RazorpayFetchPaymentResponse;
-import com.sts.merchant.payment.response.RazorpayTransferResponse;
+import com.sts.merchant.payment.response.RzpTransfer;
+import com.sts.merchant.payment.response.TotalTransfers;
 import com.sts.merchant.payment.service.CollectionService;
 import com.sts.merchant.payment.service.PaymentTransactionService;
 import com.sts.merchant.payment.service.RazorpayService;
+import com.sts.merchant.payment.utils.Constants;
 import com.sts.merchant.payment.utils.Crypto;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
-import java.time.ZoneOffset;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -46,12 +52,18 @@ public class RazorpayServiceImpl implements RazorpayService {
 
     @Value("${app.encryption.secret}")
     String secretKey;
-
+    @Autowired
+    RazorpayFetchResponseMapper razorpayFetchResponseMapper;
     @Autowired
     private CollectionService collectionService;
-
     @Autowired
     private PaymentTransactionService paymentTransactionService;
+
+    @Autowired
+    private RzpTransferMapper rzpTransferMapper;
+
+    @Autowired
+    private RzpSettlementMapper rzpSettlementMapper;
 
     public RazorpayServiceImpl(CollectionSummaryRepository collectionSummaryRepository, CollectionRepository collectionRepository, LoanDetailRepository loanDetailRepository, TransactionRepository transactionRepository, LoanAccountRepository loanAccountRepository, ClientInfoRepository clientInfoRepository) {
         this.collectionSummaryRepository = collectionSummaryRepository;
@@ -62,114 +74,147 @@ public class RazorpayServiceImpl implements RazorpayService {
         this.clientInfoRepository = clientInfoRepository;
     }
 
-    @Autowired
-    RazorpayFetchResponseMapper razorpayFetchResponseMapper;
 
-    @Override
-    public void fetchTransactionsAndRoute(List<LoanDetail> loans, List<LoanAccountMapping> loanAccountMappings) {
+    public void fetchTransactionsAndRoute(String transactionStatus) {
+
         try {
-            loanLoop:
-            for (LoanDetail loanDetail : loans) {
-                //Fetching loan collection summary of current time
-                Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loanDetail.getLoanId());
-                if (collectionSummary.isPresent()) {
-                    //Fetch the collection sequence time
-                    Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loanDetail.getLoanId());
-                    Integer collectionSequence;
-                    //Set sequence incremented by 1
-                    collectionSequence = collectionSequenceCount.map(integer -> integer + 1).orElse(1);
-                    accountLoop:
-                    for (LoanAccountMapping accountMapping : loanAccountMappings) {
-                        if (loanDetail.getLoanId().equals(accountMapping.getLoanId())) {
-                            //Find all captured transaction to process collection.
-                            Optional<List<TransactionDetail>> transactions = transactionRepository.findAllCapturedTransactionsByLoanAndAccount(Transaction.CAPTURED.toString(), loanDetail.getLoanId(), accountMapping.getLoanAccountMapId());
-                            if (transactions.isPresent() && !transactions.get().isEmpty()) {
-                                transactionLoop:
-                                for (TransactionDetail transaction : transactions.get()) {
-                                    BigDecimal amountToBeCollected = transaction.getTransactionAmount().multiply(BigDecimal.valueOf(loanDetail.getPgShare())).divide(new BigDecimal(100), 2, RoundingMode.UP);
-                                    BigDecimal dailyAmount = amountToBeCollected.add(collectionSummary.get().getDailyCollectionAmountRec());
-                                    BigDecimal monthlyAmount = amountToBeCollected.add(collectionSummary.get().getMonthlyCollectionAmountRec());
-                                    BigDecimal yearlyAmount = amountToBeCollected.add(collectionSummary.get().getYearlyCollectionAmountRec());
+            Optional<List<LoanDetail>> loanDetails = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
+            if (loanDetails.isPresent() && !loanDetails.get().isEmpty()) {
 
-                                    if ((amountToBeCollected.add(collectionSummary.get().getTotalCollectionAmountRec())).compareTo(collectionSummary.get().getLoanAmount()) > 0) {
-                                        log.info("Total collection amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
-                                        break;
-                                    }
+                for (LoanDetail loanDetail : loanDetails.get()) {
+                    //Fetching loan collection summary of current time
+                    Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loanDetail.getLoanId());
+                    if (collectionSummary.isPresent()) {
+                        //Fetch the collection sequence time
+                        Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount();
+                        Integer collectionSequence;
+                        //Set sequence incremented by 1
+                        collectionSequence = collectionSequenceCount.map(integer -> integer + 1).orElse(1);
 
-                                    if (monthlyAmount.compareTo(collectionSummary.get().getMonthlyLimitAmount()) > 0) {
-                                        log.info("Total Monthly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + accountMapping.getAccountId());
-                                        break;
-                                    }
-                                    try {
-                                        CollectionDetail collectionDetail = collectionService.saveCollection(loanDetail, collectionSequence, transaction, amountToBeCollected);
-                                        collectionSequence++;
-                                        Response<RazorpayTransferResponse> transferResponse = transferFundsToParallelCap(transaction, amountToBeCollected, accountMapping.getFunderAccountId(), accountMapping);
-                                        if (transferResponse.getStatus().is2xxSuccessful()) {
-                                            //put these statuses in enum
-                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
-                                            transactionRepository.updateTransactionStatusById(Transaction.PROCESSED.toString(), transaction.getId());
-                                            log.info("Collection successful for loan :{}", loanDetail.getDisbursedAmount() + " account :" + accountMapping.getAccountId() + " TransactionId :" + collectionDetail.getTransactionId());
-                                        } else {
-                                            collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
-                                            log.error("Error in collecting for loan :{}", loanDetail.getLoanId() + " account :" + accountMapping.getAccountId());
+                        Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loanDetail.getLoanId(), AccountType.RAZORPAY.toString());
+                        if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
+                            for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
+                                if (loanDetail.getLoanId().equals(loanAccountMapping.getLoanId())) {
+                                    //Find all captured transaction to process collection.
+                                    Optional<List<TransactionDetail>> transactions = transactionRepository.findTransactionsByStatus(transactionStatus, loanDetail.getLoanId(), loanAccountMapping.getLoanAccountMapId());
+
+                                    if (transactions.isPresent() && !transactions.get().isEmpty()) {
+                                        for (TransactionDetail transaction : transactions.get()) {
+                                            BigDecimal amountToBeCollected = transaction.getTransactionAmount().multiply(BigDecimal.valueOf(loanDetail.getPgShare())).divide(new BigDecimal(100), 2, RoundingMode.UP);
+                                            BigDecimal monthlyAmount = amountToBeCollected.add(collectionSummary.get().getMonthlyCollectionAmountRec());
+
+                                            if ((amountToBeCollected.add(collectionSummary.get().getTotalCollectionAmountRec())).compareTo(collectionSummary.get().getLoanAmount()) > 0) {
+                                                log.info("Total collection amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
+                                                break;
+                                            }
+
+                                            if (monthlyAmount.compareTo(collectionSummary.get().getMonthlyLimitAmount()) > 0) {
+                                                log.info("Total Monthly amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
+                                                break;
+                                            }
+
+                                            if ((amountToBeCollected.compareTo(BigDecimal.ONE) < 0)) {
+                                                log.info("Total collection amount exceeding! Aborting collection for transaction: {}", transaction.getTransactionId() + ", loanId: " + loanDetail.getLoanId() + ", loanAccount: " + loanAccountMapping.getAccountId());
+                                                break;
+
+                                            }
+
+                                            try {
+                                                CollectionDetail collectionDetail = collectionService.saveCollection(loanDetail, collectionSequence, transaction, amountToBeCollected);
+                                                collectionSequence++;
+                                                Response<Transfer> transferResponse = transferFundsToParallelCap(transaction, amountToBeCollected, loanAccountMapping.getFunderAccountId(), loanAccountMapping);
+                                                if (transferResponse.getStatus().is2xxSuccessful()) {
+                                                    RzpTransfer transfer = rzpTransferMapper.mapTransfer(transferResponse.getData());
+                                                    log.info("tranferId: {}", transfer.getId());
+                                                    //put these statuses in enum
+                                                    collectionRepository.updateTransferIdByCollectionId(transfer.getId(), loanDetail.getLoanId(), collectionDetail.getCollectionDetailPK().getCollectionSequence());
+                                                    collectionRepository.updateCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                    transactionRepository.updateTransactionStatusById(Transaction.PROCESSED.toString(), transaction.getId());
+                                                    log.info("Collection successful for loan :{}", loanDetail.getDisbursedAmount() + " account :" + loanAccountMapping.getAccountId() + " TransactionId :" + collectionDetail.getTransactionId());
+                                                } else {
+                                                    collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                    log.error("Error in collecting for loan :{}", loanDetail.getLoanId() + " account :" + loanAccountMapping.getAccountId());
+                                                }
+                                            } catch (Exception exception) {
+                                                log.error("Error collecting for transaction: {}", transaction.getTransactionId(), exception);
+                                                exception.printStackTrace();
+                                            }
+
                                         }
-                                    } catch (Exception exception) {
-                                        log.error("Error collecting for transaction: {}", transaction.getTransactionId(), exception);
-                                        exception.printStackTrace();
+
+
+                                    } else {
+                                        log.info("No transactions to collect for loan: {}", loanDetail.getLoanId() + " account: " + loanAccountMapping.getAccountId());
                                     }
+
+
                                 }
-                            } else {
-                                log.error("No transactions to collect for loan: {}", loanDetail.getLoanId() + " account: " + accountMapping.getAccountId());
+
+
                             }
+
+                        } else {
+
+                            log.info("No loan accounts  found in system for loan:{}", loanDetail.getLoanId());
                         }
+                    } else {
+                        log.info("No collection summary for loan: {}", loanDetail.getLoanId());
                     }
-                } else {
-                    log.error("No collection summary for loan: {}", loanDetail.getLoanId());
+
                 }
+
+            } else {
+                //If no vendor accounts are found, return
+                log.info("No loans found in system");
             }
-        } catch (Exception exception) {
-            exception.printStackTrace();
-            log.error("exception while fetching transactions and route", exception);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("exception while fetching transactions and route", e);
         }
     }
 
     @Override
     @Transactional
     public void fetchPaymentsAndRecord() {
+        log.info("Initiating payment fetch and record from razorpay..");
         try {
             //fetch active loans
             Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
             if (loans.isPresent() && !loans.get().isEmpty()) {
+                log.info("Active loans found: {}", loans.get().size());
                 for (LoanDetail loan : loans.get()) {
                     //fetch active loan accounts for this loan
                     Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId(), AccountType.RAZORPAY.toString());
                     if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
+                        log.info("Active loan accounts found for loan: {}", loan.getLoanId() + ": " + loanAccountMappings.get().size());
                         for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
                             //Fetch Last transaction for this account and vendor
+                            log.info("Fetching last recorded transaction :{}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)) + " for loan :" + loan.getLoanId() + ", accountId :" + loanAccountMapping.getAccountId());
                             Optional<TransactionDetail> transactionDetail = transactionRepository.findLastTransactionByLoanAndAccount(loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
                             //Fetch razorpay payments
-                            log.info("Initiating last payment fetch at :{}", new Timestamp(System.currentTimeMillis()) + " for loan :" + loan.getLoanId() + ", accountId : " + loanAccountMapping.getAccountId());
-
+                            log.info("Fetching client info detail :{}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)) + " for loan :" + loan.getLoanId() + ", accountId :" + loanAccountMapping.getAccountId());
                             Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.RAZORPAY.toString(), InfoType.PG.toString());
                             if (clientInfoDetail.isPresent()) {
-                                RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt()),
-                                        Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt()));
+                                log.info("Client info detail found :{}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)) + " for loan :" + loan.getLoanId() + ", accountId :" + loanAccountMapping.getAccountId());
+                                RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt()), Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt()));
                                 if (transactionDetail.isPresent()) {
+                                    log.info("Last recorded transaction found :{}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)) + " for loan :" + loan.getLoanId() + ", accountId :" + loanAccountMapping.getAccountId() + ", Amount: "+ transactionDetail.get().getTransactionAmount());
                                     try {
                                         int skip = 0;
                                         boolean recurse = true;
                                         List<Payment> totalPayments = new ArrayList<>();
-                                        Long from = transactionDetail.get().getTransactionDate().toInstant(ZoneOffset.UTC).toEpochMilli();
+                                        ZonedDateTime zdt = transactionDetail.get().getTransactionDate().atZone(ZoneId.of(Constants.ZONE_ID));
+                                        Long from = zdt.toInstant().toEpochMilli();
                                         List<Payment> payments = fetchAllAvailableTransactions(from, razorpayClient, skip, recurse, totalPayments);
                                         if (!payments.isEmpty()) {
-                                            mapPaymentsAndRecordTransactions(loans.get(), payments, loanAccountMappings.get());
+                                            mapPaymentsAndRecordTransactions(loan, payments, loanAccountMapping);
                                         } else {
                                             log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
                                         }
-                                        log.info("total payments fetched :{}", payments.size());
-                                        fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
+                                        log.info("total payments fetched :{}", payments.size() + ", at time : " + LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)) + " for loan :" + loan.getLoanId() + ", accountId :" + loanAccountMapping.getAccountId());
                                     } catch (RazorpayException e) {
-                                        log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId(), e);
+                                        log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId() + ", loan id: " + loan.getLoanId() + e);
                                         e.printStackTrace();
                                     }
                                 } else {
@@ -177,16 +222,16 @@ public class RazorpayServiceImpl implements RazorpayService {
                                         int skip = 0;
                                         boolean recurse = true;
                                         List<Payment> totalPayments = new ArrayList<>();
-                                        Long from = loans.get().get(0).getDisbursementDate().toInstant(ZoneOffset.UTC).toEpochMilli();
+                                        ZonedDateTime zdt = loans.get().get(0).getDisbursementDate().atZone(ZoneId.of(Constants.ZONE_ID));
+                                        Long from = zdt.toInstant().toEpochMilli();
                                         List<Payment> payments = fetchAllAvailableTransactions(from, razorpayClient, skip, recurse, totalPayments);
                                         if (payments.isEmpty()) {
                                             log.info("No payments to process for loanId :{}", loan.getLoanId() + "account: " + loanAccountMapping.getAccountId());
                                         } else {
-                                            mapPaymentsAndRecordTransactions(loans.get(), payments, loanAccountMappings.get());
+                                            mapPaymentsAndRecordTransactions(loan, payments, loanAccountMapping);
                                         }
-                                        fetchTransactionsAndRoute(loans.get(), loanAccountMappings.get());
                                     } catch (RazorpayException e) {
-                                        log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId(), e);
+                                        log.error("Error in razorpay fetch payments api for accountId: {}", loanAccountMapping.getAccountId() + ", loan id: " + loan.getLoanId() + e);
                                         e.printStackTrace();
                                     }
                                 }
@@ -207,47 +252,142 @@ public class RazorpayServiceImpl implements RazorpayService {
         }
     }
 
-    private void mapPaymentsAndRecordTransactions(List<LoanDetail> loans, List<Payment> payments, List<LoanAccountMapping> loanAccountMappings) {
+
+    @Transactional
+    public void checkTransferStatus() {
+        try {
+            //fetch active loans
+            Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
+            if (loans.isPresent() && !loans.get().isEmpty()) {
+                for (LoanDetail loan : loans.get()) {
+                    //fetch active loan accounts for this loan
+                    Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId(), AccountType.RAZORPAY.toString());
+                    if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
+                        for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
+                            //Fetch Last transaction for this account and vendor
+                            Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.RAZORPAY.toString(), InfoType.PG.toString());
+                            if (clientInfoDetail.isPresent()) {
+                                Optional<List<TransactionDetail>> transactionDetails = transactionRepository.findTransactionsByStatus(Transaction.PROCESSED.toString(), loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
+                                if (transactionDetails.isPresent() && !transactionDetails.get().isEmpty()) {
+                                    for (TransactionDetail transactionDetail : transactionDetails.get()) {
+                                        Optional<List<CollectionDetail>> collectionDetails = collectionRepository.findCollectionByTransactions(loan.getLoanId(), Collection.COLLECTED.toString(), transactionDetail.getTransactionId());
+                                        if (collectionDetails.isPresent() && !collectionDetails.get().isEmpty()) {
+                                            for (CollectionDetail collectionDetail : collectionDetails.get()) {
+
+                                                RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt()), Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt()));
+                                                //fetch transfer details based on transfer id
+                                                try {
+                                                    log.info("Getting transfer details at :{}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)) + " for transfer Id: " + collectionDetail.getTransferId() + ", for loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + " collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
+                                                    Transfer transfer = razorpayClient.transfers.fetch(collectionDetail.getTransferId());
+                                                    RzpTransfer rzpTransfer = rzpTransferMapper.mapTransfer(transfer);
+                                                    //fetch settlement details of linked accounts
+                                                    JSONObject params = new JSONObject();
+                                                    params.put(Constants.RazorpayConstants.EXPAND, Constants.RazorpayConstants.RECIPIENT_SETTLEMENT);
+                                                    List<Transfer> transferList = razorpayClient.transfers.fetchAll(params);
+                                                    List<TotalTransfers> totalTransfers = rzpSettlementMapper.mapSettlement(transferList);
+
+                                                    for (TotalTransfers totalTransfers1 : totalTransfers) {
+                                                        if (totalTransfers1.getId().equals(rzpTransfer.getId())) {
+                                                            //log.info("matched transfer id {}", totalTransfers1.getId());
+                                                            if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.PENDING)) {
+                                                                log.info("Collection is not done because transfer status is {}", totalTransfers1.getTransferStatus());
+                                                            } else if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.PROCESSED)) {
+
+                                                                if (totalTransfers1.getSettlementStatus().equals(Constants.RazorpayConstants.SETTLED)) {
+                                                                    //update the utr in collection detail and update collection status SETTLED
+                                                                    log.info("Amount of Rs: {}", totalTransfers1.getAmount() + " is settled in lender account: " + loanAccountMapping.getFunderAccountId() + ". TransferId: " + totalTransfers1.getId() + " loan Id: ", loan.getLoanId() + "account Id: ", loanAccountMapping.getAccountId() + " collection Id: ", collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: ", transactionDetail.getTransactionId());
+                                                                    collectionRepository.updateCollectionStatusByCollectionId(Collection.SETTLED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                                    collectionRepository.updateUtrId(totalTransfers1.getUtr(), totalTransfers1.getId());
+                                                                    transactionRepository.updateTransactionStatusById(Transaction.SETTLED.toString(), transactionDetail.getId());
+
+                                                                } else {
+                                                                    log.info("Settlement is pending for transfer: {}", totalTransfers1.getId() + ", for loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + " collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
+                                                                }
+                                                            } else if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.FAILED)) {
+                                                                //update the collection and transaction status to failed
+                                                                log.info("Amount of Rs: {}", totalTransfers1.getAmount() + " has failed to settle in lender account: " + loanAccountMapping.getFunderAccountId() + ". TransferId: " + totalTransfers1.getId() + " loan Id: ", loan.getLoanId() + "account Id: ", loanAccountMapping.getAccountId() + " collection Id: ", collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: ", transactionDetail.getTransactionId());
+                                                                log.info("update the collection and transaction status to FAILED for transfer id: {}", collectionDetail.getTransferId() + ", loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + ", collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
+                                                                collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                                transactionRepository.updateTransactionStatusById(Transaction.FAILED.toString(), transactionDetail.getId());
+
+                                                            } else if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.REVERSED)) {
+                                                                //update collection status failed and transaction status reversed
+                                                                log.info("update collection status FAILED and transaction status REVERSED for transfer id {}", collectionDetail.getTransferId() + " loan Id: " + loan.getLoanId() + "account Id: " + loanAccountMapping.getAccountId() + " collection Id: " + collectionDetail.getCollectionDetailPK().getCollectionSequence() + " transaction Id: " + transactionDetail.getTransactionId());
+                                                                collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                                transactionRepository.updateTransactionStatusById(Transaction.REVERSED.toString(), transactionDetail.getId());
+                                                            }
+
+                                                        }
+                                                    }
+                                                } catch (RazorpayException e) {
+                                                    log.error("Error in razorpay fetch transfer api for accountId: {}", loanAccountMapping.getAccountId(), e);
+                                                    e.printStackTrace();
+                                                }
+                                            }
+
+                                        } else {
+                                            log.info("no collections to fetch");
+
+                                        }
+                                    }
+                                } else {
+                                    log.info("no transaction to fetch");
+                                }
+                            } else {
+                                log.info("Client info not found! for loanId: {}", loan.getLoanId() + " accountId: " + loanAccountMapping.getLoanAccountMapId());
+                            }
+                        }
+                    } else {
+                        log.info("No loan accounts  found in system for loan:{}", loan.getLoanId());
+
+                    }
+                }
+            } else {
+                //If no vendor accounts are found, return
+                log.info("No loans found in system");
+
+            }
+
+        } catch (Exception exception) {
+            log.error("exception while fetching payments :", exception);
+        }
+    }
+
+
+    private void mapPaymentsAndRecordTransactions(LoanDetail loan, List<Payment> payments, LoanAccountMapping loanAccountMapping) {
         RazorpayFetchPaymentResponse response = razorpayFetchResponseMapper.mapFromPaymentResponse(payments);
         response.getItems().forEach(item -> {
-            loans.forEach(loan -> {
-                loanAccountMappings.forEach(loanAccountMapping -> {
-                    if (item.getCaptured()) {
-                        try {
-                            Optional<TransactionDetail> transactionDetail = transactionRepository.findTransactionById(item.getId());
-                            if (transactionDetail.isEmpty()) {
-                                log.info("Initiating saving transactions for loanId: {}", loan.getLoanId() + " accountId " + loanAccountMapping.getAccountId());
-                                log.info("Transaction amount {}", BigDecimal.valueOf(item.getAmount() / 100));
-                                paymentTransactionService.saveRazorpayPaymentAsTransaction(item, loanAccountMapping.getAccountId(), loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
-                            }
-                        } catch (JsonProcessingException e) {
-                            log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId(), e);
-                        } catch (Exception exception) {
-                            log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId(), exception);
-                        }
-                        log.info("total payments fetched :{}", payments.size());
+            if (item.getCaptured()) {
+                try {
+                    Optional<TransactionDetail> transactionDetail = transactionRepository.findTransactionById(item.getId());
+                    if (transactionDetail.isEmpty()) {
+                        log.info("Initiating saving transactions for loanId: {}", loan.getLoanId() + " accountId " + loanAccountMapping.getAccountId());
+                        log.info("Transaction amount {}", BigDecimal.valueOf(item.getAmount() / 100));
+                        paymentTransactionService.saveRazorpayPaymentAsTransaction(item, loanAccountMapping.getAccountId(), loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
                     }
-                });
-            });
+                } catch (JsonProcessingException e) {
+                    log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId(), e);
+                } catch (Exception exception) {
+                    log.error("error inserting transaction for loan :{}", loan.getLoanId() + " account: " + loanAccountMapping.getAccountId(), exception);
+                }
+                log.info("total payments fetched :{}", payments.size());
+            }
         });
     }
 
-    private List<Payment> fetchAllAvailableTransactions(Long from, RazorpayClient razorpayClient, int skip,
-                                                        boolean recurse, List<Payment> totalPayments) throws RazorpayException {
+    private List<Payment> fetchAllAvailableTransactions(Long from, RazorpayClient razorpayClient, int skip, boolean recurse, List<Payment> totalPayments) throws RazorpayException {
         List<Payment> payments = fetchPaymentsFromRazorpay(from, razorpayClient, skip);
         while (recurse && payments.size() == 100) {
             totalPayments.addAll(payments);
             skip += 100;
             List<Payment> paymentsAfterSkipping = fetchPaymentsFromRazorpay(from, razorpayClient, skip);
             totalPayments.addAll(paymentsAfterSkipping);
-            if (paymentsAfterSkipping.isEmpty())
-                recurse = false;
+            if (paymentsAfterSkipping.isEmpty()) recurse = false;
         }
         return payments;
     }
 
-    private List<Payment> fetchPaymentsFromRazorpay(Long from, RazorpayClient razorpayClient, Integer skip) throws
-            RazorpayException {
+    private List<Payment> fetchPaymentsFromRazorpay(Long from, RazorpayClient razorpayClient, Integer skip) throws RazorpayException {
         JSONObject paymentRequest = new JSONObject();
         paymentRequest.put("from", from / 1000);
         paymentRequest.put("to", System.currentTimeMillis() / 1000);
@@ -258,16 +398,15 @@ public class RazorpayServiceImpl implements RazorpayService {
     }
 
     @Override
-    public Response transferPayment(RazorpayTransferMap map, String transactionId, LoanAccountMapping loanAccountMapping) {
+    public Response<Transfer> transferPayment(RazorpayTransferMap map, String transactionId, LoanAccountMapping loanAccountMapping) {
         try {
             log.info("Initiating payment transfer for transactionId : {}", transactionId);
-            log.info("Payment transfer at : {}", new Timestamp(System.currentTimeMillis()));
+            log.info("Payment transfer at : {}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)));
 
             Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.RAZORPAY.toString(), InfoType.PG.toString());
             if (clientInfoDetail.isPresent()) {
 
-                RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt()),
-                        Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt()));
+                RazorpayClient razorpayClient = new RazorpayClient(Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt()), Crypto.decrypt(clientInfoDetail.get().getInfo2(), secretKey, clientInfoDetail.get().getSalt()));
                 JSONObject request = new JSONObject();
 
                 JSONArray transfers = new JSONArray();
@@ -282,8 +421,8 @@ public class RazorpayServiceImpl implements RazorpayService {
 
                 List<Transfer> razorPayTransferResponse = razorpayClient.payments.transfer(transactionId, request);
                 log.info("Payment Completed for transactionId: {}", transactionId);
-                log.info("Payment completed at : {}", new Timestamp(System.currentTimeMillis()));
-                return new Response<>("Transaction Completed Successfully", HttpStatus.OK, razorPayTransferResponse);
+                log.info("Payment completed at : {}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)));
+                return new Response<Transfer>("Transaction Completed Successfully", HttpStatus.OK, razorPayTransferResponse.get(0));
 
             } else {
                 log.error("Client info not found for loanAccount : {} ", loanAccountMapping.getLoanAccountMapId());
@@ -299,10 +438,7 @@ public class RazorpayServiceImpl implements RazorpayService {
         }
     }
 
-    private Response<RazorpayTransferResponse> transferFundsToParallelCap(TransactionDetail transactionDetail,
-                                                                          BigDecimal amountToBeCollected,
-                                                                          String funderAccountId,
-                                                                          LoanAccountMapping loanAccountMapping) {
+    private Response<Transfer> transferFundsToParallelCap(TransactionDetail transactionDetail, BigDecimal amountToBeCollected, String funderAccountId, LoanAccountMapping loanAccountMapping) {
         RazorpayTransferMap map = new RazorpayTransferMap();
         map.setAccount(funderAccountId);
         map.setCurrency(transactionDetail.getCurrency());
