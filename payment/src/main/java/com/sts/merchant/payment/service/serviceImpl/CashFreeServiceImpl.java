@@ -109,7 +109,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                     Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loan.getLoanId());
                     if (collectionSummary.isPresent()) {
                         //Fetch the latest collection sequence
-                        Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loan.getLoanId());
+                        Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount();
                         Integer collectionSequence;
                         //Set sequence incremented by 1
                         collectionSequence = collectionSequenceCount.map(integer -> integer + 1).orElse(1);
@@ -219,7 +219,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                     Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loan.getLoanId());
                     if (collectionSummary.isPresent()) {
                         //Fetch the latest collection sequence
-                        Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount(loan.getLoanId());
+                        Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount();
                         Integer collectionSequence;
                         //Set sequence incremented by 1
                         collectionSequence = collectionSequenceCount.map(integer -> integer + 1).orElse(1);
@@ -261,7 +261,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                                 Optional<List<CollectionDetail>> collections = collectionRepository.findCollectionBySettlementId(loan.getLoanId(), settlementDetail.getSettlementId(), Collection.COLLECTED.toString());
                                                                 if (collections.isPresent() && !collections.get().isEmpty()) {
                                                                     for (CollectionDetail collectionDetail : collections.get()) {
-                                                                            totalCollection = totalCollection.add(collectionDetail.getCollectionAmount());
+                                                                        totalCollection = totalCollection.add(collectionDetail.getCollectionAmount());
                                                                     }
                                                                     amountToBeCollected = amountToBeCollected.subtract(totalCollection);
                                                                 }
@@ -394,10 +394,17 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                     if (!transferStatusResponse.getStatus().isEmpty()) {
                                                         if (transferStatusResponse.getStatus().equals("SUCCESS")) {
                                                             settlementRepository.updateSettlementStatusById(Transaction.SETTLED.toString(), settlementDetail.getId());
+                                                            collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.SETTLED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                            collectionRepository.updateCashFreeUtrByCollectionId(transferStatusResponse.getData().getTransfer().getUtr(), loan.getLoanId(), settlementDetail.getSettlementId());
                                                         } else if (transferStatusResponse.getStatus().equals("PENDING")) {
 
-                                                        } else {
-
+                                                        } else if (transferStatusResponse.getStatus().equals("FAILED")) {
+                                                            settlementRepository.updateSettlementStatusById(Transaction.FAILED.toString(), settlementDetail.getId());
+                                                            collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                        } else if (transferStatusResponse.getStatus().equals("REVERSED")) {
+                                                            settlementRepository.updateSettlementStatusById(Transaction.CAPTURED.toString(), settlementDetail.getId());
+                                                            collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                            collectionRepository.updateCashFreeUtrByCollectionId(transferStatusResponse.getData().getTransfer().getUtr(), loan.getLoanId(), settlementDetail.getSettlementId());
                                                         }
                                                     }
                                                 }

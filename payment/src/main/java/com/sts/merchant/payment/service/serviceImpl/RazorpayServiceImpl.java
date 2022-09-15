@@ -289,32 +289,37 @@ public class RazorpayServiceImpl implements RazorpayService {
                                                     for (TotalTransfers totalTransfers1 : totalTransfers) {
                                                         if (totalTransfers1.getId().equals(rzpTransfer.getId())) {
                                                             //log.info("matched transfer id {}", totalTransfers1.getId());
-                                                            if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.PENDING)) {
-                                                                log.info("Collection is not done because transfer status is {}", totalTransfers1.getTransferStatus());
-                                                            } else if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.PROCESSED)) {
+                                                            switch (totalTransfers1.getTransferStatus()) {
+                                                                case Constants.RazorpayConstants.PENDING:
+                                                                    log.info("Collection is not done because transfer status is {}", totalTransfers1.getTransferStatus());
+                                                                    break;
+                                                                case Constants.RazorpayConstants.PROCESSED:
 
-                                                                if (totalTransfers1.getSettlementStatus().equals(Constants.RazorpayConstants.SETTLED)) {
-                                                                    //update the utr in collection detail and update collection status SETTLED
-                                                                    log.info("Amount of Rs: {}", totalTransfers1.getAmount() + " is settled in lender account: " + loanAccountMapping.getFunderAccountId() + ". TransferId: " + totalTransfers1.getId() + " loan Id: ", loan.getLoanId() + "account Id: ", loanAccountMapping.getAccountId() + " collection Id: ", collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: ", transactionDetail.getTransactionId());
-                                                                    collectionRepository.updateCollectionStatusByCollectionId(Collection.SETTLED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
-                                                                    collectionRepository.updateUtrId(totalTransfers1.getUtr(), totalTransfers1.getId());
-                                                                    transactionRepository.updateTransactionStatusById(Transaction.SETTLED.toString(), transactionDetail.getId());
+                                                                    if (totalTransfers1.getSettlementStatus().equals(Constants.RazorpayConstants.SETTLED)) {
+                                                                        //update the utr in collection detail and update collection status SETTLED
+                                                                        log.info("Amount of Rs: {}", totalTransfers1.getAmount() + " is settled in lender account: " + loanAccountMapping.getFunderAccountId() + ". TransferId: " + totalTransfers1.getId() + " loan Id: ", loan.getLoanId() + "account Id: ", loanAccountMapping.getAccountId() + " collection Id: ", collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: ", transactionDetail.getTransactionId());
+                                                                        collectionRepository.updateCollectionStatusByCollectionId(Collection.SETTLED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                                        collectionRepository.updateUtrId(totalTransfers1.getUtr(), totalTransfers1.getId());
+                                                                        transactionRepository.updateTransactionStatusById(Transaction.SETTLED.toString(), transactionDetail.getId());
 
-                                                                } else {
-                                                                    log.info("Settlement is pending for transfer: {}", totalTransfers1.getId() + ", for loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + " collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
-                                                                }
-                                                            } else if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.FAILED)) {
-                                                                //update the collection and transaction status to failed
-                                                                log.info("Amount of Rs: {}", totalTransfers1.getAmount() + " has failed to settle in lender account: " + loanAccountMapping.getFunderAccountId() + ". TransferId: " + totalTransfers1.getId() + " loan Id: ", loan.getLoanId() + "account Id: ", loanAccountMapping.getAccountId() + " collection Id: ", collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: ", transactionDetail.getTransactionId());
-                                                                log.info("update the collection and transaction status to FAILED for transfer id: {}", collectionDetail.getTransferId() + ", loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + ", collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
-                                                                collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
-                                                                transactionRepository.updateTransactionStatusById(Transaction.FAILED.toString(), transactionDetail.getId());
+                                                                    } else {
+                                                                        log.info("Settlement is pending for transfer: {}", totalTransfers1.getId() + ", for loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + " collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
+                                                                    }
+                                                                    break;
+                                                                case Constants.RazorpayConstants.FAILED:
+                                                                    //update the collection and transaction status to failed
+                                                                    log.info("Amount of Rs: {}", totalTransfers1.getAmount() + " has failed to settle in lender account: " + loanAccountMapping.getFunderAccountId() + ". TransferId: " + totalTransfers1.getId() + " loan Id: ", loan.getLoanId() + "account Id: ", loanAccountMapping.getAccountId() + " collection Id: ", collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: ", transactionDetail.getTransactionId());
+                                                                    log.info("update the collection and transaction status to FAILED for transfer id: {}", collectionDetail.getTransferId() + ", loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + ", collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
+                                                                    collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                                    transactionRepository.updateTransactionStatusById(Transaction.FAILED.toString(), transactionDetail.getId());
 
-                                                            } else if (totalTransfers1.getTransferStatus().equals(Constants.RazorpayConstants.REVERSED)) {
-                                                                //update collection status failed and transaction status reversed
-                                                                log.info("update collection status FAILED and transaction status REVERSED for transfer id {}", collectionDetail.getTransferId() + " loan Id: " + loan.getLoanId() + "account Id: " + loanAccountMapping.getAccountId() + " collection Id: " + collectionDetail.getCollectionDetailPK().getCollectionSequence() + " transaction Id: " + transactionDetail.getTransactionId());
-                                                                collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
-                                                                transactionRepository.updateTransactionStatusById(Transaction.REVERSED.toString(), transactionDetail.getId());
+                                                                    break;
+                                                                case Constants.RazorpayConstants.REVERSED:
+                                                                    //update collection status failed and transaction status reversed
+                                                                    log.info("update collection status FAILED and transaction status REVERSED for transfer id {}", collectionDetail.getTransferId() + " loan Id: " + loan.getLoanId() + "account Id: " + loanAccountMapping.getAccountId() + " collection Id: " + collectionDetail.getCollectionDetailPK().getCollectionSequence() + " transaction Id: " + transactionDetail.getTransactionId());
+                                                                    collectionRepository.updateCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getTransactionId());
+                                                                    transactionRepository.updateTransactionStatusById(Transaction.REVERSED.toString(), transactionDetail.getId());
+                                                                    break;
                                                             }
 
                                                         }

@@ -26,7 +26,7 @@ public class RazorpayScheduler {
 //        String transactionStatus = Transaction.CAPTURED.toString();
 //       razorpayService.fetchTransactionsAndRoute(transactionStatus);
 
-       razorpayService.checkTransferStatus();
+//       razorpayService.checkTransferStatus();
 
 
 
