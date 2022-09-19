@@ -6,10 +6,10 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.5.4</version>
+		<version>2.7.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<artifactId>merchant-service</artifactId>
+	<artifactId>payment</artifactId>
 	<version>1.0.0</version>
 	<packaging>jar</packaging>
 	<properties>
@@ -44,6 +44,12 @@
 			<groupId>com.razorpay</groupId>
 			<artifactId>razorpay-java</artifactId>
 			<version>1.4.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.cashfree</groupId>
+			<artifactId>cashfreelibjava</artifactId>
+			<version>0.0.6</version>
 		</dependency>
 
 	</dependencies>

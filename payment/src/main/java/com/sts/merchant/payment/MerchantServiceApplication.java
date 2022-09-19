@@ -2,8 +2,13 @@ package com.sts.merchant.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.sts.merchant.core.entity.ClientInfoDetail;
 import com.sts.merchant.core.entity.LoanAccountMapping;
 import com.sts.merchant.core.entity.LoanDetail;
+import com.sts.merchant.core.enums.AccountType;
+import com.sts.merchant.core.enums.Deal;
+import com.sts.merchant.core.enums.InfoType;
+import com.sts.merchant.core.repository.ClientInfoRepository;
 import com.sts.merchant.core.repository.LoanAccountRepository;
 import com.sts.merchant.core.repository.LoanDetailRepository;
 import com.sts.merchant.payment.utils.Crypto;
@@ -37,7 +42,6 @@ public class MerchantServiceApplication {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
-
     }
 
     @Bean
@@ -51,7 +55,7 @@ public class MerchantServiceApplication {
         SpringApplication.run(MerchantServiceApplication.class, args);
     }
 
-//
+
 //    private String getSaltString() {
 //        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 //        StringBuilder salt = new StringBuilder();
@@ -66,6 +70,9 @@ public class MerchantServiceApplication {
 //    }
 //
 //    @Autowired
+//    ClientInfoRepository clientInfoRepository;
+//
+//    @Autowired
 //    LoanDetailRepository loanDetailRepository;
 //
 //    @Autowired
@@ -77,43 +84,80 @@ public class MerchantServiceApplication {
 //    @PostConstruct
 //    void test() throws Exception {
 //        LoanDetail loanDetail = new LoanDetail();
-//        loanDetail.setLoanId(1);
+//        loanDetail.setLoanId(4);
+//        loanDetail.setPartnerLoanId(1);
+//        loanDetail.setSanctionedAmount(BigDecimal.valueOf(100000000));
+//        loanDetail.setDisbursedAmount(BigDecimal.valueOf(100000000));
 //        loanDetail.setLoanStatus("A");
+//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 9, 14, 0, 0));
+//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 9, 14, 0, 0));
+//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 9, 14, 0, 0));
+//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 9, 14, 0, 0));
+//        loanDetail.setDailyMaxAmount(BigDecimal.valueOf(100000));
+//        loanDetail.setDailyMinAmount(BigDecimal.valueOf(10000));
+//        loanDetail.setMonthlyMaxAmount(BigDecimal.valueOf(100000));
+//        loanDetail.setMonthlyMinAmount(BigDecimal.valueOf(10000));
+//        loanDetail.setWeeklyMaxAmount(BigDecimal.valueOf(100000));
+//        loanDetail.setWeeklyMinAmount(BigDecimal.valueOf(10000));
+//        loanDetail.setYearlyMaxAmount(BigDecimal.valueOf(100000));
+//        loanDetail.setYearlyMinAmount(BigDecimal.valueOf(10000));
+//        loanDetail.setLenderName("PARALLEL_CAP_LENDER");
+//        loanDetail.setDealType(Deal.REVENUE_SHARE.toString());
+//        loanDetail.setContactEmail("arsheks@gmail.com");
+//        loanDetail.setContactNumber("9468841107");
+//        loanDetail.setContactName("Arshek");
+//        loanDetail.setPgShare(20);
+//        loanDetail.setTotalShare(10);
+//        loanDetail.setPgName(AccountType.RAZORPAY.toString());
 //        loanDetail.setCreatedOn(LocalDateTime.now());
-//        loanDetail.setCreatedBy("TEST");
-//        loanDetail.setCapPercentage(10);
-//        loanDetail.setFunderAccountId("acc_JVWLRvD3QVBodY");
-//        loanDetail.setDailyLimitAmount(BigDecimal.valueOf(1000000));
-//        loanDetail.setMonthlyLimitAmount(BigDecimal.valueOf(100000000));
-//        loanDetail.setWeeklyLimitAmount(BigDecimal.valueOf(5000000));
-//        loanDetail.setYearlyLimitAmount(BigDecimal.valueOf(500000000));
-//        loanDetail.setLoanAmount(BigDecimal.valueOf(10000000000L));
-//        loanDetail.setPaymentDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 5, 1, 0, 0));
-//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 5, 1, 0, 0));
+//        loanDetail.setCreatedBy("PARALLEL_CAP_TEST");
 //        loanDetail = loanDetailRepository.save(loanDetail);
 //
 //        LoanAccountMapping loanAccountMapping = new LoanAccountMapping();
 //        loanAccountMapping.setLoanId(loanDetail.getLoanId());
 //        loanAccountMapping.setStatus("A");
-//        loanAccountMapping.setLoanAccountMapId(1);
-//        loanAccountMapping.setAccountId("JNvRFQjCGpwb6t");
-//        loanAccountMapping.setSalt(getSaltString());
+//        loanAccountMapping.setFunderAccountId("acc_KHlbhyTVFtn7yW");
+//        loanAccountMapping.setAccountType(AccountType.RAZORPAY.toString());
+//        loanAccountMapping.setLoanAccountMapId(4);
+//        loanAccountMapping.setAccountId("Jq2npxYt7Fqec1");
 //        loanAccountMapping.setCreatedOn(LocalDateTime.now());
-//        loanAccountMapping.setCreatedBy("TEST");
-//        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
-//        loanAccountMapping.setInfo1(Crypto.encrypt("rzp_test_kAD1RIVvc0iZ9j", secretKey, loanAccountMapping.getSalt()));
-//        loanAccountMapping.setInfo2(Crypto.encrypt("UTyE6QZ5SSM0ggWRNW2x85d1", secretKey, loanAccountMapping.getSalt()));
+//        loanAccountMapping.setCreatedBy("PARALLEL_CAP_TEST");
 //        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
 //
-//        System.out.println(loanAccountMapping.getInfo1() + "  ,,  " + loanAccountMapping.getInfo2());
+//        ClientInfoDetail pgClientInfoDetail = new ClientInfoDetail();
+//        pgClientInfoDetail.setSalt(getSaltString());
+//        pgClientInfoDetail.setLoanAccountMapId(4);
+//        pgClientInfoDetail.setAccountType(AccountType.RAZORPAY.toString());
+//        pgClientInfoDetail.setInfoType(InfoType.PG.toString());
+//        pgClientInfoDetail.setCreatedOn(LocalDateTime.now());
+//        pgClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
+//        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
+//        pgClientInfoDetail.setInfo1(Crypto.encrypt("rzp_test_r5VWamNJ4Nf6mw", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo2(Crypto.encrypt("GZ4IlNdvMjRJsz5ELQKpRgPZ", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
 //
-//        System.out.println(Crypto.decrypt(loanAccountMapping.getInfo1(), secretKey, loanAccountMapping.getSalt()));
-//        System.out.println(Crypto.decrypt(loanAccountMapping.getInfo2(), secretKey, loanAccountMapping.getSalt()));
+//        System.out.println(pgClientInfoDetail.getInfo1() + "  ,,  " + pgClientInfoDetail.getInfo2());
+//
+//        System.out.println(Crypto.decrypt(pgClientInfoDetail.getInfo1(), secretKey, pgClientInfoDetail.getSalt()));
+//        System.out.println(Crypto.decrypt(pgClientInfoDetail.getInfo2(), secretKey, pgClientInfoDetail.getSalt()));
 //
 //
+////        ClientInfoDetail payoutClientInfoDetail = new ClientInfoDetail();
+////        payoutClientInfoDetail.setSalt(getSaltString());
+////        payoutClientInfoDetail.setLoanAccountMapId(2);
+////        payoutClientInfoDetail.setAccountType(AccountType.RAZORPAY.toString());
+////        payoutClientInfoDetail.setInfoType(InfoType.PAYOUTS.toString());
+////        payoutClientInfoDetail.setCreatedOn(LocalDateTime.now());
+////        payoutClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
+////        payoutClientInfoDetail = clientInfoRepository.save(payoutClientInfoDetail);
+////        payoutClientInfoDetail.setInfo1(Crypto.encrypt("CF191699CC45DR8CULKD6QQTF7Q0", secretKey, payoutClientInfoDetail.getSalt()));
+////        payoutClientInfoDetail.setInfo2(Crypto.encrypt("4abd42fd0db53f53309dbf622b2738bf35e0a241", secretKey, payoutClientInfoDetail.getSalt()));
+////        payoutClientInfoDetail = clientInfoRepository.save(payoutClientInfoDetail);
+////
+////        System.out.println(payoutClientInfoDetail.getInfo1() + "  ,,  " + payoutClientInfoDetail.getInfo2());
+////
+////        System.out.println(Crypto.decrypt(payoutClientInfoDetail.getInfo1(), secretKey, payoutClientInfoDetail.getSalt()));
+////        System.out.println(Crypto.decrypt(payoutClientInfoDetail.getInfo2(), secretKey, payoutClientInfoDetail.getSalt()));
 //    }
 
 }
