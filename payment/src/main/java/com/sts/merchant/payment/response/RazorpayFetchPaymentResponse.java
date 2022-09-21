@@ -8,5 +8,5 @@ import java.util.List;
 @Data
 public class RazorpayFetchPaymentResponse {
 
-    private List<Item> items=new ArrayList<>();
+    private List<FetchResponse> items=new ArrayList<>();
 }

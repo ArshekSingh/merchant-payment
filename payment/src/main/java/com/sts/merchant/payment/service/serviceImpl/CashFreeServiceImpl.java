@@ -4,7 +4,6 @@ import com.cashfree.lib.pg.domains.response.Settlement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sts.merchant.core.entity.*;
 import com.sts.merchant.core.enums.*;
-import com.sts.merchant.core.enums.Collection;
 import com.sts.merchant.core.repository.*;
 import com.sts.merchant.payment.request.CashfreeTransferRequest;
 import com.sts.merchant.payment.response.*;
@@ -22,7 +21,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -342,8 +344,7 @@ public class CashFreeServiceImpl implements CashfreeService {
         return false;
     }
 
-    private void transferMoneyToLender(LoanDetail loan, LoanAccountMapping loanAccountMapping, CashfreeAuthorizeResponse tokenResponse, SettlementDetail settlementDetail, BigDecimal amountToBeCollected, CollectionDetail collectionDetail, String updatedSettlementStatus, CashFreePayouts payouts
-    ) throws IOException {
+    private void transferMoneyToLender(LoanDetail loan, LoanAccountMapping loanAccountMapping, CashfreeAuthorizeResponse tokenResponse, SettlementDetail settlementDetail, BigDecimal amountToBeCollected, CollectionDetail collectionDetail, String updatedSettlementStatus, CashFreePayouts payouts) throws IOException {
         CashfreeTransferRequest transferRequest = new CashfreeTransferRequest();
         transferRequest.setAmount(amountToBeCollected.toString());
         transferRequest.setBeneId(loanAccountMapping.getBeneficiaryId());
@@ -353,7 +354,7 @@ public class CashFreeServiceImpl implements CashfreeService {
             collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
             collectionRepository.updateCashfreeTransferIdByCollectionId(transferRequest.getTransferId(), loan.getLoanId(), settlementDetail.getSettlementId());
             settlementRepository.updateSettlementStatusById(updatedSettlementStatus, settlementDetail.getId());
-            log.info("Collection successful for loan :{}", loan.getSanctionedAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
+            log.info("Collection successful for loan :{}", loan.getLoanId() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
         } else {
             collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
             log.error("Error in collecting for loan :{}", loan.getLoanId() + " account :" + loanAccountMapping.getAccountId());

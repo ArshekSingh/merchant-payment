@@ -3,15 +3,12 @@ package com.sts.merchant.payment.response;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Data
 @Slf4j
-public class Item {
+public class FetchResponse {
     private String id;
     private String entity;
     private String status;
@@ -26,15 +23,15 @@ public class Item {
     private Integer fee;
     private Integer tax;
     private Boolean captured;
-    private String orderId;
-    private Integer amountReversed;
+    private String order_id;
+    private Integer amount_reversed;
     private String description;
     private Notes notes;
-    private List<String> linkedAccountNotes = new ArrayList<>();
-    private Boolean onHold;
-    private Object onHoldUntil;
-    private Object recipientSettlementId;
-    private Date createdAt;
-    private Object processedAt;
+    private List<String> linked_account_notes = new ArrayList<>();
+    private Boolean on_hold;
+    private Object on_hold_until;
+    private Object recipient_settlement_id;
+    private Long created_at;
+    private Object processed_at;
     private Error error;
 }

@@ -11,5 +11,4 @@ public class Error {
     private String step;
     private String id;
     private String source;
-    private String metadata;
 }

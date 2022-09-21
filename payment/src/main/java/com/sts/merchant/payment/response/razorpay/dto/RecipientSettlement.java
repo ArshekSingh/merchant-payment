@@ -1,4 +1,4 @@
-package com.sts.merchant.payment.response;
+package com.sts.merchant.payment.response.razorpay.dto;
 
 
 import lombok.Data;
@@ -12,5 +12,5 @@ public class RecipientSettlement {
     private Integer fee;
     private Integer tax;
     private String utr;
-    private Integer createdAt;
+    private Long createdAt;
 }

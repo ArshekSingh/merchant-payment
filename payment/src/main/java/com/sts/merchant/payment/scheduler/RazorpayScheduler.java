@@ -20,13 +20,13 @@ public class RazorpayScheduler {
     @Scheduled(fixedDelayString = "${app.scheduler.time}")
     public void fetchRazorpayPaymentsAndCollect() throws RazorpayException {
     //    cashfreeService.transferPaymentByPayouts();
-  //    razorpayService.fetchPaymentsAndRecord();
+       razorpayService.fetchPaymentsAndRecord();
 
-        //transaction status CAPTURED and FAILED
+//        transaction status CAPTURED and FAILED
 //        String transactionStatus = Transaction.CAPTURED.toString();
 //       razorpayService.fetchTransactionsAndRoute(transactionStatus);
 
-//       razorpayService.checkTransferStatus();
+     // razorpayService.checkTransferStatus();
 
 
 
