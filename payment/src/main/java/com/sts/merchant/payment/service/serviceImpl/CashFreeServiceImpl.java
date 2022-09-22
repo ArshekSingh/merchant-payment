@@ -4,6 +4,7 @@ import com.cashfree.lib.pg.domains.response.Settlement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sts.merchant.core.entity.*;
 import com.sts.merchant.core.enums.*;
+import com.sts.merchant.core.enums.Collection;
 import com.sts.merchant.core.repository.*;
 import com.sts.merchant.payment.request.CashfreeTransferRequest;
 import com.sts.merchant.payment.response.*;
@@ -21,10 +22,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.time.ZoneId;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -67,17 +66,18 @@ public class CashFreeServiceImpl implements CashfreeService {
      */
     @Override
     public void captureCashFreeSettlements() {
+        log.info("Initiating CashFree settlements fetch at: {}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)));
         try {
             //fetch active loans
             Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
             if (loans.isPresent() && !loans.get().isEmpty()) {
                 for (LoanDetail loan : loans.get()) {
-
+                    log.info("Loans fetch successful. Total Active Loans: {}", loans.get());
                     //fetch active cashFree loan accounts for this loan
                     Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId(), AccountType.CASHFREE.toString());
                     if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
                         for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
-
+                            log.info("Loan account fetch successful. Total Active Loan Accounts: {}", loanAccountMappings.get().size() + ", loan: " + loan.getLoanId());
                             //Fetch Last Settlement for this loan account
                             log.info("Initiating cashFree last payment fetch at :{}", new Timestamp(System.currentTimeMillis()) + " for loan :" + loan.getLoanId() + ", accountId : " + loanAccountMapping.getAccountId());
                             Optional<SettlementDetail> lastSettlement = settlementRepository.findLastSettlementByLoanAndAccount(loan.getLoanId(), loanAccountMapping.getLoanAccountMapId());
@@ -92,7 +92,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                     }
                 }
             } else {
-                log.error("No Loans found to execute operations!");
+                log.error("No Loans found to execute!");
             }
         } catch (Exception exception) {
             log.error("Error in capturing cashFree Settlements!");
@@ -101,15 +101,17 @@ public class CashFreeServiceImpl implements CashfreeService {
 
     @Override
     public void transferCapturedPaymentsByPayouts() {
-        log.info("Initiating captured settlements fetch and money transfer");
+        log.info("Initiating captured settlements fetch and money transfer at :{}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)));
         try {
             //fetch active loans
             Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
             if (loans.isPresent() && !loans.get().isEmpty()) {
+                log.info("Loans fetch successful. Total Active Loans: {}", loans.get());
                 for (LoanDetail loan : loans.get()) {
                     //Fetching loan collection summary of current time
                     Optional<CollectionSummary> collectionSummary = collectionSummaryRepository.findAllCollectionSummary(loan.getLoanId());
                     if (collectionSummary.isPresent()) {
+                        log.info("Collection summary fetch successful for Loan: {}", loan.getLoanId());
                         //Fetch the latest collection sequence
                         Optional<Integer> collectionSequenceCount = collectionRepository.findCollectionSequenceCount();
                         Integer collectionSequence;
@@ -119,6 +121,7 @@ public class CashFreeServiceImpl implements CashfreeService {
                         //fetch active cashFree loan accounts for this loan
                         Optional<List<LoanAccountMapping>> loanAccountMappings = loanAccountRepository.findAllActiveLoanAccounts(Loan.ACTIVE.toString(), loan.getLoanId(), AccountType.CASHFREE.toString());
                         if (loanAccountMappings.isPresent() && !loanAccountMappings.get().isEmpty()) {
+                            log.info("Loan account fetch successful. Total Active Loan Accounts: {}", loanAccountMappings.get().size() + ", loan: " + loan.getLoanId());
                             for (LoanAccountMapping loanAccountMapping : loanAccountMappings.get()) {
                                 //Fetch client info
                                 Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.CASHFREE.toString(), InfoType.PAYOUTS.toString());
@@ -259,13 +262,9 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                                 break;
 
                                                             if (settlementDetail.getStatus().equals(Transaction.INCOMPLETE.toString())) {
-                                                                BigDecimal totalCollection = BigDecimal.ZERO;
-                                                                Optional<List<CollectionDetail>> collections = collectionRepository.findCollectionBySettlementId(loan.getLoanId(), settlementDetail.getSettlementId(), Collection.COLLECTED.toString());
-                                                                if (collections.isPresent() && !collections.get().isEmpty()) {
-                                                                    for (CollectionDetail collectionDetail : collections.get()) {
-                                                                        totalCollection = totalCollection.add(collectionDetail.getCollectionAmount());
-                                                                    }
-                                                                    amountToBeCollected = amountToBeCollected.subtract(totalCollection);
+                                                                Optional<BigDecimal> totalCollection = collectionRepository.findTotalCollectionBySettlementId(loan.getLoanId(), settlementDetail.getSettlementId(), Collection.COLLECTED.toString());
+                                                                if (totalCollection.isPresent()) {
+                                                                    amountToBeCollected = amountToBeCollected.subtract(totalCollection.get());
                                                                 }
                                                             }
 
@@ -344,7 +343,8 @@ public class CashFreeServiceImpl implements CashfreeService {
         return false;
     }
 
-    private void transferMoneyToLender(LoanDetail loan, LoanAccountMapping loanAccountMapping, CashfreeAuthorizeResponse tokenResponse, SettlementDetail settlementDetail, BigDecimal amountToBeCollected, CollectionDetail collectionDetail, String updatedSettlementStatus, CashFreePayouts payouts) throws IOException {
+    private void transferMoneyToLender(LoanDetail loan, LoanAccountMapping loanAccountMapping, CashfreeAuthorizeResponse tokenResponse, SettlementDetail settlementDetail, BigDecimal amountToBeCollected, CollectionDetail collectionDetail, String updatedSettlementStatus, CashFreePayouts payouts
+    ) throws IOException {
         CashfreeTransferRequest transferRequest = new CashfreeTransferRequest();
         transferRequest.setAmount(amountToBeCollected.toString());
         transferRequest.setBeneId(loanAccountMapping.getBeneficiaryId());
@@ -354,7 +354,7 @@ public class CashFreeServiceImpl implements CashfreeService {
             collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.COLLECTED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
             collectionRepository.updateCashfreeTransferIdByCollectionId(transferRequest.getTransferId(), loan.getLoanId(), settlementDetail.getSettlementId());
             settlementRepository.updateSettlementStatusById(updatedSettlementStatus, settlementDetail.getId());
-            log.info("Collection successful for loan :{}", loan.getLoanId() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
+            log.info("Collection successful for loan :{}", loan.getSanctionedAmount() + " account :" + loanAccountMapping.getAccountId() + " SettlementId :" + collectionDetail.getSettlementId());
         } else {
             collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), collectionDetail.getCollectionDetailPK().getLoanId(), collectionDetail.getSettlementId());
             log.error("Error in collecting for loan :{}", loan.getLoanId() + " account :" + loanAccountMapping.getAccountId());
@@ -363,7 +363,7 @@ public class CashFreeServiceImpl implements CashfreeService {
 
     @Override
     public void checkPaymentTransferStatus() {
-        log.info("Initiating payment transfers status enquiry");
+        log.info("Initiating payment transfers status enquiry at: {}");
         try {
             //fetch active loans
             Optional<List<LoanDetail>> loans = loanDetailRepository.findActiveLoans(Loan.ACTIVE.toString());
@@ -393,19 +393,28 @@ public class CashFreeServiceImpl implements CashfreeService {
                                                 for (CollectionDetail collectionDetail : collections.get()) {
                                                     TransferStatusResponse transferStatusResponse = payouts.getTransferStatus(tokenResponse.getData().getToken(), collectionDetail.getTransferId());
                                                     if (!transferStatusResponse.getStatus().isEmpty()) {
-                                                        if (transferStatusResponse.getStatus().equals("SUCCESS")) {
-                                                            settlementRepository.updateSettlementStatusById(Transaction.SETTLED.toString(), settlementDetail.getId());
-                                                            collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.SETTLED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
-                                                            collectionRepository.updateCashFreeUtrByCollectionId(transferStatusResponse.getData().getTransfer().getUtr(), loan.getLoanId(), settlementDetail.getSettlementId());
-                                                        } else if (transferStatusResponse.getStatus().equals("PENDING")) {
-
-                                                        } else if (transferStatusResponse.getStatus().equals("FAILED")) {
-                                                            settlementRepository.updateSettlementStatusById(Transaction.FAILED.toString(), settlementDetail.getId());
-                                                            collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
-                                                        } else if (transferStatusResponse.getStatus().equals("REVERSED")) {
-                                                            settlementRepository.updateSettlementStatusById(Transaction.CAPTURED.toString(), settlementDetail.getId());
-                                                            collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
-                                                            collectionRepository.updateCashFreeUtrByCollectionId(transferStatusResponse.getData().getTransfer().getUtr(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                        switch (transferStatusResponse.getStatus()) {
+                                                            case "SUCCESS":
+                                                                collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.SETTLED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                                collectionRepository.updateCashFreeUtrByCollectionId(transferStatusResponse.getData().getTransfer().getUtr(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                                Optional<BigDecimal> totalCollection = collectionRepository.findTotalCollectionBySettlementId(loan.getLoanId(), settlementDetail.getSettlementId(), Collection.SETTLED.toString());
+                                                                if (totalCollection.isPresent()) {
+                                                                    if (totalCollection.get().compareTo(settlementDetail.getSettlementAmount()) >= 0) {
+                                                                        settlementRepository.updateSettlementStatusById(Transaction.SETTLED.toString(), settlementDetail.getId());
+                                                                    }
+                                                                }
+                                                                break;
+                                                            case "PENDING":
+                                                                break;
+                                                            case "FAILED":
+                                                                settlementRepository.updateSettlementStatusById(Transaction.FAILED.toString(), settlementDetail.getId());
+                                                                collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                                break;
+                                                            case "REVERSED":
+                                                                settlementRepository.updateSettlementStatusById(Transaction.CAPTURED.toString(), settlementDetail.getId());
+                                                                collectionRepository.updateCashfreeCollectionStatusByCollectionId(Collection.FAILED.toString(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                                collectionRepository.updateCashFreeUtrByCollectionId(transferStatusResponse.getData().getTransfer().getUtr(), loan.getLoanId(), settlementDetail.getSettlementId());
+                                                                break;
                                                         }
                                                     }
                                                 }
@@ -426,6 +435,8 @@ public class CashFreeServiceImpl implements CashfreeService {
     private void fetchAndSaveCashfreeSettlements(String startDate, LoanDetail loan, LoanAccountMapping loanAccountMapping, Optional<SettlementDetail> lastSettlement, Optional<ClientInfoDetail> clientInfoDetail) throws Exception {
         //Fetch client info
         if (clientInfoDetail.isPresent()) {
+            log.info("Client Info fetch successful. loan: {}", loan.getLoanId() + ", loan account: " + loanAccountMapping.getLoanAccountMapId());
+
             //If last settlement is present, start fetching settlements after last settlement date to current
             String endDate = DateTimeUtil.localDateTimeToString(LocalDateTime.now());
             String clientId = Crypto.decrypt(clientInfoDetail.get().getInfo1(), secretKey, clientInfoDetail.get().getSalt());
