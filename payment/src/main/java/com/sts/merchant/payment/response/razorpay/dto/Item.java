@@ -1,7 +1,5 @@
 package com.sts.merchant.payment.response.razorpay.dto;
 
-import com.sts.merchant.core.dto.razorpayDto.AcquirerData;
-import com.sts.merchant.payment.response.Error;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 

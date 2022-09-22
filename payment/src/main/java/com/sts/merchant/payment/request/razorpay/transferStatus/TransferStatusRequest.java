@@ -7,6 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TransferStatusRequest {
 
-    private String expand;
+    private int count;
 
 }

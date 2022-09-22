@@ -1,4 +1,4 @@
-package com.sts.merchant.payment.response;
+package com.sts.merchant.payment.response.cashfree;
 
 import com.cashfree.lib.pg.domains.response.Settlement;
 import lombok.*;

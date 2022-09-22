@@ -5,31 +5,23 @@ import com.sts.merchant.core.response.Response;
 import com.sts.merchant.payment.request.razorpay.fetchTransaction.TransactionFetchRequest;
 import com.sts.merchant.payment.request.razorpay.transferTransaction.TransactionTransferRequest;
 import com.sts.merchant.payment.response.razorpay.dto.Item;
-import com.sts.merchant.payment.response.razorpay.dto.RecipientSettlement;
 import com.sts.merchant.payment.response.razorpay.dto.TransferStatus;
 import com.sts.merchant.payment.response.razorpay.dto.Transfers;
 import com.sts.merchant.payment.response.razorpay.fetchTransaction.TransactionFetchResponse;
-import com.sts.merchant.payment.response.razorpay.transferStatus.TransferStatusResponse;
 import com.sts.merchant.payment.response.razorpay.transferTransaction.TransactionTransferResponse;
 import okhttp3.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 public class RazorpayPG {
     private final String clientId;
     private final String clientSecret;
 
-    private String authString;
-
     public RazorpayPG(String clientId, String clientSecret) {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
-        String encoding = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
-        this.authString = "Basic " + encoding;
     }
 
     public Response<TransactionFetchResponse> fetchRazorpayPayments(TransactionFetchRequest transactionFetchRequest, Integer skip) {
@@ -45,15 +37,13 @@ public class RazorpayPG {
 
             String responseBodyString = response.body().string();
             Gson gson = new Gson();
-            if(response.isSuccessful()) {
+            if (response.isSuccessful()) {
                 TransactionFetchResponse obj = gson.fromJson(responseBodyString, TransactionFetchResponse.class);
                 paymentResponse.setCode(HttpStatus.OK.value());
                 paymentResponse.setData(obj);
                 paymentResponse.setStatus(HttpStatus.OK);
                 paymentResponse.setMessage(HttpStatus.OK.toString());
-            }
-
-            else {
+            } else {
                 Item payment = gson.fromJson(responseBodyString, Item.class);
                 paymentResponse.setCode(HttpStatus.BAD_REQUEST.value());
                 paymentResponse.setMessage(payment.getError().getDescription());
@@ -115,88 +105,26 @@ public class RazorpayPG {
 
     }
 
+    public Response<TransferStatus> fetchSettlementDetails(String transferId) {
 
-    public Response<TransferStatus> fetchTransfer(String transferId){
         Response<TransferStatus> transfer = new Response<>();
         try {
             OkHttpClient client = new OkHttpClient().newBuilder().build();
-            HttpUrl httpUrl = new HttpUrl.Builder()
-                    .scheme("https")
-                    .host("api.razorpay.com")
-                    .addPathSegment("v1")
-                    .addPathSegment("transfers")
-                    .addPathSegment(transferId)
-                    .build();
+            HttpUrl httpUrl = new HttpUrl.Builder().scheme("https").host("api.razorpay.com").addPathSegment("v1").addPathSegment("transfers").addPathSegment(transferId).addQueryParameter("expand[]", Constants.RazorpayConstants.RECIPIENT_SETTLEMENT).build();
 
-            Request request = new Request.Builder()
-                    .url(httpUrl)
-                    .header(HttpHeaders.AUTHORIZATION, "Basic " + HttpHeaders.encodeBasicAuth(clientId, clientSecret, StandardCharsets.ISO_8859_1))
-                    .build();
-
-
-            okhttp3.Response response = client.newCall(request).execute();
-            String responseBodyString = response.body().string();
-            Gson gson = new Gson();
-            if(response.isSuccessful()) {
-                TransferStatus obj = gson.fromJson(responseBodyString, TransferStatus.class);
-                transfer.setCode(HttpStatus.OK.value());
-                transfer.setData(obj);
-                transfer.setMessage(HttpStatus.OK.toString());
-                transfer.setStatus(HttpStatus.OK);
-            }
-            else{
-                TransferStatus obj = gson.fromJson(responseBodyString, TransferStatus.class);
-                transfer.setCode(HttpStatus.BAD_REQUEST.value());
-                transfer.setMessage(obj.getError().getDescription());
-                transfer.setStatus(HttpStatus.BAD_REQUEST);
-            }
-
-        } catch (IOException ioException) {
-            transfer = new Response<>();
-            transfer.setCode(HttpStatus.BAD_REQUEST.value());
-            transfer.setMessage(transfer.getMessage());
-            return transfer;
-        } catch (Exception exception) {
-            transfer = new Response<>();
-            transfer.setCode(HttpStatus.BAD_REQUEST.value());
-            transfer.setMessage(transfer.getMessage());
-        }
-        return transfer;
-
-
-    }
-
-    public Response<TransferStatusResponse> fetchSettlementDetails(){
-
-        Response<TransferStatusResponse> transfer = new Response<>();
-        try {
-            OkHttpClient client = new OkHttpClient().newBuilder().build();
-            HttpUrl httpUrl = new HttpUrl.Builder()
-                    .scheme("https")
-                    .host("api.razorpay.com")
-                    .addPathSegment("v1")
-                    .addPathSegment("transfers")
-                    .addQueryParameter("expand[]", Constants.RazorpayConstants.RECIPIENT_SETTLEMENT)
-                    .build();
-
-            Request request = new Request.Builder()
-                    .url(httpUrl)
-                    .header(HttpHeaders.AUTHORIZATION, "Basic " + HttpHeaders.encodeBasicAuth(clientId, clientSecret, StandardCharsets.ISO_8859_1))
-                    .build();
-
+            Request request = new Request.Builder().url(httpUrl).header(HttpHeaders.AUTHORIZATION, "Basic " + HttpHeaders.encodeBasicAuth(clientId, clientSecret, StandardCharsets.ISO_8859_1)).build();
 
             okhttp3.Response response = client.newCall(request).execute();
 
             String responseBodyString = response.body().string();
             Gson gson = new Gson();
-            if(response.isSuccessful()) {
-                TransferStatusResponse obj = gson.fromJson(responseBodyString, TransferStatusResponse.class);
+            if (response.isSuccessful()) {
+                TransferStatus obj = gson.fromJson(responseBodyString, TransferStatus.class);
                 transfer.setCode(HttpStatus.OK.value());
                 transfer.setData(obj);
                 transfer.setMessage(HttpStatus.OK.toString());
                 transfer.setStatus(HttpStatus.OK);
-            }
-            else{
+            } else {
                 TransferStatus obj = gson.fromJson(responseBodyString, TransferStatus.class);
                 transfer.setCode(HttpStatus.BAD_REQUEST.value());
                 transfer.setMessage(obj.getError().getDescription());

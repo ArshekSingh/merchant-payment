@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public class Constants {
     public static final String ZONE_ID = "Asia/Kolkata";
     public static final BigDecimal ONE_HUNDRED = new BigDecimal(100);
+    public static final Integer FIRST_ELEMENT = 0;
 
     public static BigDecimal percentage(BigDecimal base, BigDecimal pct) {
         return base.multiply(pct).divide(ONE_HUNDRED);

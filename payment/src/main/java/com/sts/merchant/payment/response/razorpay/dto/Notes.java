@@ -1,4 +1,4 @@
-package com.sts.merchant.payment.response;
+package com.sts.merchant.payment.response.razorpay.dto;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

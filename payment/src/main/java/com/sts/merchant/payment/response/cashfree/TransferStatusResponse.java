@@ -1,5 +1,6 @@
-package com.sts.merchant.payment.response;
+package com.sts.merchant.payment.response.cashfree;
 
+import com.sts.merchant.payment.response.cashfree.CashfreeTransferStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,9 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Setter
 @Slf4j
-public class CashfreeBalanceResponse {
+public class TransferStatusResponse {
     private String status;
     private String subCode;
     private String message;
-    private CashfreeBalance data;
+    private CashfreeTransferStatus data;
 }

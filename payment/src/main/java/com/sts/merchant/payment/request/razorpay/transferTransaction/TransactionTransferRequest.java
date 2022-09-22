@@ -1,7 +1,6 @@
 package com.sts.merchant.payment.request.razorpay.transferTransaction;
 
-import com.google.gson.JsonObject;
-import com.sts.merchant.payment.request.razorpay.dto.TransactionTransfer;
+import com.sts.merchant.payment.request.razorpay.model.TransactionTransfer;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 

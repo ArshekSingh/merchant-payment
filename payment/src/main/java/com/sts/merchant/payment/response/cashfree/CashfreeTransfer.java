@@ -1,4 +1,4 @@
-package com.sts.merchant.payment.response;
+package com.sts.merchant.payment.response.cashfree;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

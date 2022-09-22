@@ -1,4 +1,4 @@
-package com.sts.merchant.payment.response;
+package com.sts.merchant.payment.response.cashfree;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,9 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Setter
 @Slf4j
-public class CashfreeAuthorizeResponse {
+public class CashfreeBalanceResponse {
     private String status;
     private String subCode;
     private String message;
-    private CashfreeToken data;
+    private CashfreeBalance data;
 }

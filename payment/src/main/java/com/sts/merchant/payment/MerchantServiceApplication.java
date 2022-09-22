@@ -84,8 +84,8 @@ public class MerchantServiceApplication {
 //    @PostConstruct
 //    void test() throws Exception {
 //        LoanDetail loanDetail = new LoanDetail();
-//        loanDetail.setLoanId(4);
-//        loanDetail.setPartnerLoanId(1);
+//        loanDetail.setLoanId(1);
+//        loanDetail.setPartnerLoanId(2);
 //        loanDetail.setSanctionedAmount(BigDecimal.valueOf(100000000));
 //        loanDetail.setDisbursedAmount(BigDecimal.valueOf(100000000));
 //        loanDetail.setLoanStatus("A");
@@ -105,7 +105,7 @@ public class MerchantServiceApplication {
 //        loanDetail.setDealType(Deal.REVENUE_SHARE.toString());
 //        loanDetail.setContactEmail("arsheks@gmail.com");
 //        loanDetail.setContactNumber("9468841107");
-//        loanDetail.setContactName("Arshek");
+//        loanDetail.setContactName("Arshek2");
 //        loanDetail.setPgShare(20);
 //        loanDetail.setTotalShare(10);
 //        loanDetail.setPgName(AccountType.RAZORPAY.toString());
@@ -116,24 +116,24 @@ public class MerchantServiceApplication {
 //        LoanAccountMapping loanAccountMapping = new LoanAccountMapping();
 //        loanAccountMapping.setLoanId(loanDetail.getLoanId());
 //        loanAccountMapping.setStatus("A");
-//        loanAccountMapping.setFunderAccountId("acc_KHlbhyTVFtn7yW");
+//        loanAccountMapping.setFunderAccountId("acc_KHk94H5rNQancT");
 //        loanAccountMapping.setAccountType(AccountType.RAZORPAY.toString());
-//        loanAccountMapping.setLoanAccountMapId(4);
-//        loanAccountMapping.setAccountId("Jq2npxYt7Fqec1");
+//        loanAccountMapping.setLoanAccountMapId(1);
+//        loanAccountMapping.setAccountId("KHjzQcBt8L0IeN");
 //        loanAccountMapping.setCreatedOn(LocalDateTime.now());
 //        loanAccountMapping.setCreatedBy("PARALLEL_CAP_TEST");
 //        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
 //
 //        ClientInfoDetail pgClientInfoDetail = new ClientInfoDetail();
 //        pgClientInfoDetail.setSalt(getSaltString());
-//        pgClientInfoDetail.setLoanAccountMapId(4);
+//        pgClientInfoDetail.setLoanAccountMapId(1);
 //        pgClientInfoDetail.setAccountType(AccountType.RAZORPAY.toString());
 //        pgClientInfoDetail.setInfoType(InfoType.PG.toString());
 //        pgClientInfoDetail.setCreatedOn(LocalDateTime.now());
 //        pgClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
 //        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
-//        pgClientInfoDetail.setInfo1(Crypto.encrypt("rzp_test_r5VWamNJ4Nf6mw", secretKey, pgClientInfoDetail.getSalt()));
-//        pgClientInfoDetail.setInfo2(Crypto.encrypt("GZ4IlNdvMjRJsz5ELQKpRgPZ", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo1(Crypto.encrypt("rzp_test_vmKFOOSoCA9XHK", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo2(Crypto.encrypt("xtKWo7EYj0iNwg39L2QUsTSO", secretKey, pgClientInfoDetail.getSalt()));
 //        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
 //
 //        System.out.println(pgClientInfoDetail.getInfo1() + "  ,,  " + pgClientInfoDetail.getInfo2());
