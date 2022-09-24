@@ -238,8 +238,7 @@ public class RazorpayServiceImpl implements RazorpayService {
         Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.RAZORPAY.toString(), InfoType.PG.toString());
         if (clientInfoDetail.isPresent()) {
             RazorpayPG razorpayPG = authorizeRazorpayAccount(loan, loanAccountMapping, clientInfoDetail.get());
-            ZonedDateTime zonedDateTime;
-            zonedDateTime = transactionDetail.map(detail -> detail.getTransactionDate().atZone(ZoneId.of(Constants.ZONE_ID))).orElseGet(() -> loan.getDisbursementDate().atZone(ZoneId.of(Constants.ZONE_ID)));
+            ZonedDateTime zonedDateTime = transactionDetail.map(detail -> detail.getTransactionDate().atZone(ZoneId.of(Constants.ZONE_ID))).orElseGet(() -> loan.getDisbursementDate().atZone(ZoneId.of(Constants.ZONE_ID)));
             try {
                 fetchPayments(loan, loanAccountMapping, razorpayPG, zonedDateTime.toInstant().toEpochMilli() / 1000);
             } catch (Exception e) {
