@@ -11,7 +11,7 @@ public class RazorpayScheduler {
     @Autowired
     RazorpayService razorpayService;
 
-    @Scheduled(cron = "${app.scheduler.time}")
+    @Scheduled(fixedDelayString = "${app.scheduler.time}")
     public void scheduleFetchingRazorpayPayments() {
         razorpayService.fetchRazorpayPayments();
         razorpayService.transferMoney(Transaction.CAPTURED.toString());
