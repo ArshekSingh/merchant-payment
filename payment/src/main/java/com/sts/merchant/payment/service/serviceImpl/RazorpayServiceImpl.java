@@ -315,11 +315,11 @@ public class RazorpayServiceImpl implements RazorpayService {
                 log.info("Getting transfer details at :{}", DateTimeUtil.localDateTimeToString(LocalDateTime.now()) + " for transfer Id: " + collectionDetail.getTransferId() + ", for loan Id: " + loan.getLoanId() + ", account Id:" + loanAccountMapping.getAccountId() + " collection Id:" + collectionDetail.getCollectionDetailPK().getCollectionSequence() + ", transaction Id: " + transactionDetail.getTransactionId());
 
                 Response<TransferStatus> transferResponse = razorpayPG.fetchSettlementDetails(collectionDetail.getTransferId());
-
+                log.info("Razorpay settlement details for transferID: {}", collectionDetail.getTransferId() + " response: " + transferResponse.getMessage());
                 if (transferResponse.getStatus().is2xxSuccessful()) {
                     switch (transferResponse.getData().getStatus()) {
                         case Constants.RazorpayConstants.PENDING:
-                            log.info("Collection is not done because transfer status is {}", transferResponse.getStatus());
+                            log.info("Collection is not done because transfer status is {}", transferResponse.getData().getStatus());
                             break;
                         case Constants.RazorpayConstants.PROCESSED:
 
@@ -396,8 +396,13 @@ public class RazorpayServiceImpl implements RazorpayService {
 
     private List<TransactionFetchResponse> fetchPaymentsFromRazorpay(TransactionFetchRequest transactionFetchRequest, RazorpayPG razorpayPG, Integer skip) {
         Response<TransactionFetchResponse> response = razorpayPG.fetchRazorpayPayments(transactionFetchRequest, skip);
+        log.info("Razorpay fetch transaction details at: {}", DateTimeUtil.localDateTimeToString(LocalDateTime.now()) + " response: " + response.getMessage());
         List<TransactionFetchResponse> paymentFetchResponse = new ArrayList<>();
-        paymentFetchResponse.add(response.getData());
+        if (response.getStatus() == HttpStatus.BAD_REQUEST) {
+            log.info("Razorpay fetch transaction failed, message: {}", response.getMessage());
+        } else {
+            paymentFetchResponse.add(response.getData());
+        }
         return paymentFetchResponse;
     }
 
@@ -414,6 +419,7 @@ public class RazorpayServiceImpl implements RazorpayService {
                 RazorpayPG razorpayPG = new RazorpayPG(clientId, clientSecret);
 
                 Response<TransactionTransferResponse> razorPayTransferResponse = razorpayPG.routeTransactionToLender(transactionId, map);
+                log.info("Razorpay transfer details for transactionID: {}", transactionId + " response: " + razorPayTransferResponse.getMessage());
                 if (razorPayTransferResponse.getCode() == HttpStatus.OK.value()) {
                     log.info("Payment Completed for transactionId: {}", transactionId);
                     log.info("Payment completed at : {}", LocalDateTime.now().atZone(ZoneId.of(Constants.ZONE_ID)));

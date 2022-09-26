@@ -55,7 +55,7 @@ public class MerchantServiceApplication {
         SpringApplication.run(MerchantServiceApplication.class, args);
     }
 
-
+//
 //    private String getSaltString() {
 //        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 //        StringBuilder salt = new StringBuilder();
@@ -85,14 +85,14 @@ public class MerchantServiceApplication {
 //    void test() throws Exception {
 //        LoanDetail loanDetail = new LoanDetail();
 //        loanDetail.setLoanId(1);
-//        loanDetail.setPartnerLoanId(2);
+//        loanDetail.setPartnerLoanId(1);
 //        loanDetail.setSanctionedAmount(BigDecimal.valueOf(100000000));
 //        loanDetail.setDisbursedAmount(BigDecimal.valueOf(100000000));
 //        loanDetail.setLoanStatus("A");
-//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 9, 14, 0, 0));
-//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 9, 14, 0, 0));
-//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 9, 14, 0, 0));
-//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 9, 14, 0, 0));
+//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 9, 25, 0, 0));
+//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 9, 25, 0, 0));
+//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 9, 25, 0, 0));
+//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 9, 25, 0, 0));
 //        loanDetail.setDailyMaxAmount(BigDecimal.valueOf(100000));
 //        loanDetail.setDailyMinAmount(BigDecimal.valueOf(10000));
 //        loanDetail.setMonthlyMaxAmount(BigDecimal.valueOf(100000));
@@ -105,7 +105,7 @@ public class MerchantServiceApplication {
 //        loanDetail.setDealType(Deal.REVENUE_SHARE.toString());
 //        loanDetail.setContactEmail("arsheks@gmail.com");
 //        loanDetail.setContactNumber("9468841107");
-//        loanDetail.setContactName("Arshek2");
+//        loanDetail.setContactName("Arshek");
 //        loanDetail.setPgShare(20);
 //        loanDetail.setTotalShare(10);
 //        loanDetail.setPgName(AccountType.RAZORPAY.toString());
@@ -125,6 +125,7 @@ public class MerchantServiceApplication {
 //        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
 //
 //        ClientInfoDetail pgClientInfoDetail = new ClientInfoDetail();
+//        pgClientInfoDetail.setId(1);
 //        pgClientInfoDetail.setSalt(getSaltString());
 //        pgClientInfoDetail.setLoanAccountMapId(1);
 //        pgClientInfoDetail.setAccountType(AccountType.RAZORPAY.toString());
@@ -141,23 +142,5 @@ public class MerchantServiceApplication {
 //        System.out.println(Crypto.decrypt(pgClientInfoDetail.getInfo1(), secretKey, pgClientInfoDetail.getSalt()));
 //        System.out.println(Crypto.decrypt(pgClientInfoDetail.getInfo2(), secretKey, pgClientInfoDetail.getSalt()));
 //
-//
-////        ClientInfoDetail payoutClientInfoDetail = new ClientInfoDetail();
-////        payoutClientInfoDetail.setSalt(getSaltString());
-////        payoutClientInfoDetail.setLoanAccountMapId(2);
-////        payoutClientInfoDetail.setAccountType(AccountType.RAZORPAY.toString());
-////        payoutClientInfoDetail.setInfoType(InfoType.PAYOUTS.toString());
-////        payoutClientInfoDetail.setCreatedOn(LocalDateTime.now());
-////        payoutClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
-////        payoutClientInfoDetail = clientInfoRepository.save(payoutClientInfoDetail);
-////        payoutClientInfoDetail.setInfo1(Crypto.encrypt("CF191699CC45DR8CULKD6QQTF7Q0", secretKey, payoutClientInfoDetail.getSalt()));
-////        payoutClientInfoDetail.setInfo2(Crypto.encrypt("4abd42fd0db53f53309dbf622b2738bf35e0a241", secretKey, payoutClientInfoDetail.getSalt()));
-////        payoutClientInfoDetail = clientInfoRepository.save(payoutClientInfoDetail);
-////
-////        System.out.println(payoutClientInfoDetail.getInfo1() + "  ,,  " + payoutClientInfoDetail.getInfo2());
-////
-////        System.out.println(Crypto.decrypt(payoutClientInfoDetail.getInfo1(), secretKey, payoutClientInfoDetail.getSalt()));
-////        System.out.println(Crypto.decrypt(payoutClientInfoDetail.getInfo2(), secretKey, payoutClientInfoDetail.getSalt()));
 //    }
-
 }

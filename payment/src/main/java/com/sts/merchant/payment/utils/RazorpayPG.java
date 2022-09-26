@@ -12,8 +12,10 @@ import com.sts.merchant.payment.response.razorpay.transferTransaction.Transactio
 import okhttp3.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 public class RazorpayPG {
     private final String clientId;
@@ -27,8 +29,16 @@ public class RazorpayPG {
     public Response<TransactionFetchResponse> fetchRazorpayPayments(TransactionFetchRequest transactionFetchRequest, Integer skip) {
         Response<TransactionFetchResponse> paymentResponse = new Response<>();
         try {
-            OkHttpClient client = new OkHttpClient().newBuilder().build();
-            HttpUrl httpUrl = new HttpUrl.Builder().scheme("https").host("api.razorpay.com").addPathSegment("v1").addPathSegment("payments").addQueryParameter("from", transactionFetchRequest.getFrom().toString()).addQueryParameter("to", transactionFetchRequest.getTo().toString()).addQueryParameter("skip", skip.toString()).addQueryParameter("count", String.valueOf(transactionFetchRequest.getCount())).build();
+            OkHttpClient client = new OkHttpClient().newBuilder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build();
+
+            HttpUrl httpUrl = new HttpUrl.Builder()
+                    .scheme("https").host("api.razorpay.com")
+                    .addPathSegment("v1")
+                    .addPathSegment("payments").addQueryParameter("from", transactionFetchRequest.getFrom().toString()).addQueryParameter("to", transactionFetchRequest.getTo().toString()).addQueryParameter("skip", skip.toString()).addQueryParameter("count", String.valueOf(transactionFetchRequest.getCount())).build();
 
             Request request = new Request.Builder().url(httpUrl).header(HttpHeaders.AUTHORIZATION, "Basic " + HttpHeaders.encodeBasicAuth(clientId, clientSecret, StandardCharsets.ISO_8859_1)).build();
 
@@ -52,13 +62,15 @@ public class RazorpayPG {
 
         } catch (IOException ioException) {
             paymentResponse = new Response<>();
+            paymentResponse.setStatus(HttpStatus.BAD_REQUEST);
             paymentResponse.setCode(HttpStatus.BAD_REQUEST.value());
-            paymentResponse.setMessage(paymentResponse.getMessage());
+            paymentResponse.setMessage(ioException.getMessage());
             return paymentResponse;
         } catch (Exception exception) {
             paymentResponse = new Response<>();
+            paymentResponse.setStatus(HttpStatus.BAD_REQUEST);
             paymentResponse.setCode(HttpStatus.BAD_REQUEST.value());
-            paymentResponse.setMessage(paymentResponse.getMessage());
+            paymentResponse.setMessage(exception.getMessage());
         }
         return paymentResponse;
     }
@@ -67,7 +79,11 @@ public class RazorpayPG {
     public Response<TransactionTransferResponse> routeTransactionToLender(String transactionId, TransactionTransferRequest transferRequest) {
         Response<TransactionTransferResponse> transferResponse = new Response<>();
         try {
-            OkHttpClient client = new OkHttpClient().newBuilder().build();
+            OkHttpClient client = new OkHttpClient().newBuilder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build();
             Gson gson = new Gson();
             String requestString = gson.toJson(transferRequest);
             MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -93,13 +109,15 @@ public class RazorpayPG {
             }
         } catch (IOException ioException) {
             transferResponse = new Response<>();
+            transferResponse.setStatus(HttpStatus.BAD_REQUEST);
             transferResponse.setCode(HttpStatus.BAD_REQUEST.value());
-            transferResponse.setMessage(transferResponse.getMessage());
+            transferResponse.setMessage(ioException.getMessage());
             return transferResponse;
         } catch (Exception exception) {
             transferResponse = new Response<>();
+            transferResponse.setStatus(HttpStatus.BAD_REQUEST);
             transferResponse.setCode(HttpStatus.BAD_REQUEST.value());
-            transferResponse.setMessage(transferResponse.getMessage());
+            transferResponse.setMessage(exception.getMessage());
         }
         return transferResponse;
 
@@ -109,7 +127,11 @@ public class RazorpayPG {
 
         Response<TransferStatus> transfer = new Response<>();
         try {
-            OkHttpClient client = new OkHttpClient().newBuilder().build();
+            OkHttpClient client = new OkHttpClient().newBuilder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build();
             HttpUrl httpUrl = new HttpUrl.Builder().scheme("https").host("api.razorpay.com").addPathSegment("v1").addPathSegment("transfers").addPathSegment(transferId).addQueryParameter("expand[]", Constants.RazorpayConstants.RECIPIENT_SETTLEMENT).build();
 
             Request request = new Request.Builder().url(httpUrl).header(HttpHeaders.AUTHORIZATION, "Basic " + HttpHeaders.encodeBasicAuth(clientId, clientSecret, StandardCharsets.ISO_8859_1)).build();
@@ -129,18 +151,18 @@ public class RazorpayPG {
                 transfer.setCode(HttpStatus.BAD_REQUEST.value());
                 transfer.setMessage(obj.getError().getDescription());
                 transfer.setStatus(HttpStatus.BAD_REQUEST);
-
             }
-
         } catch (IOException ioException) {
             transfer = new Response<>();
+            transfer.setStatus(HttpStatus.BAD_REQUEST);
             transfer.setCode(HttpStatus.BAD_REQUEST.value());
-            transfer.setMessage(transfer.getMessage());
+            transfer.setMessage(ioException.getMessage());
             return transfer;
         } catch (Exception exception) {
             transfer = new Response<>();
+            transfer.setStatus(HttpStatus.BAD_REQUEST);
             transfer.setCode(HttpStatus.BAD_REQUEST.value());
-            transfer.setMessage(transfer.getMessage());
+            transfer.setMessage(exception.getMessage());
         }
         return transfer;
 
