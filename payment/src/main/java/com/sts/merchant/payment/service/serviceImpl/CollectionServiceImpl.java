@@ -4,6 +4,7 @@ import com.sts.merchant.core.entity.*;
 import com.sts.merchant.core.enums.Collection;
 import com.sts.merchant.core.repository.CollectionRepository;
 import com.sts.merchant.payment.service.CollectionService;
+import com.sts.merchant.payment.utils.DateTimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,13 +32,13 @@ public class CollectionServiceImpl implements CollectionService {
             log.info("Saving Transaction Id : {}", transaction.getTransactionId());
             CollectionDetail collectionDetail = new CollectionDetail();
             collectionDetail.setCollectionAmount(amountToBeCollected);
-            collectionDetail.setCollectionDate(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
+            collectionDetail.setCollectionDate(DateTimeUtil.formatLocalDateTime(LocalDateTime.now()));
             collectionDetail.setCollectionDetailPK(new CollectionDetailPK(collectionSequence, loanDetail.getLoanId()));
             collectionDetail.setStatus(Collection.PENDING.toString());
             collectionDetail.setCollectionType(transaction.getTransactionMode());
             collectionDetail.setTransactionId(transaction.getTransactionId());
             collectionDetail.setCreatedBy("JOB");
-            collectionDetail.setCreatedOn(LocalDateTime.ofInstant(LocalDateTime.now().toInstant(ZoneOffset.UTC), ZoneId.systemDefault()));
+            collectionDetail.setCreatedOn(DateTimeUtil.formatLocalDateTime(LocalDateTime.now()));
             collectionDetail = collectionRepository.save(collectionDetail);
             return collectionDetail;
         } else {

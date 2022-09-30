@@ -3,18 +3,19 @@ package com.sts.merchant.payment.service.serviceImpl;
 import com.cashfree.lib.pg.domains.response.Settlement;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sts.merchant.core.enums.Transaction;
 import com.sts.merchant.core.entity.TransactionDetail;
+import com.sts.merchant.core.enums.Transaction;
 import com.sts.merchant.core.repository.TransactionRepository;
-import com.sts.merchant.payment.response.Item;
+import com.sts.merchant.payment.response.razorpay.dto.Item;
 import com.sts.merchant.payment.service.PaymentTransactionService;
+import com.sts.merchant.payment.utils.Constants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -22,10 +23,9 @@ import java.time.ZoneId;
 @Service
 public class PaymentTransactionServiceImpl implements PaymentTransactionService {
     @Autowired
-    private TransactionRepository transactionRepository;
-
-    @Autowired
     ObjectMapper objectMapper;
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @Transactional
     @Override
@@ -38,7 +38,7 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
         transactionDetail.setLoanAccountMapId(loanAccountMapId);
         transactionDetail.setTransactionTax(item.getTax());
         transactionDetail.setTransactionFee(item.getFee());
-        transactionDetail.setTransactionDate(LocalDateTime.ofInstant(item.getCreatedAt().toInstant(), ZoneId.systemDefault()));
+        transactionDetail.setTransactionDate(LocalDateTime.ofInstant(Instant.ofEpochSecond(item.getCreated_at()), ZoneId.of(Constants.ZONE_ID)));
         transactionDetail.setCurrency(item.getCurrency());
         transactionDetail.setDescription(item.getDescription());
         transactionDetail.setAccountId(accountId);

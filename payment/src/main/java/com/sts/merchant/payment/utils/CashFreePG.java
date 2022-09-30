@@ -4,7 +4,7 @@ import com.cashfree.lib.pg.domains.response.Settlement;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sts.merchant.core.response.Response;
-import com.sts.merchant.payment.response.SettlementResponse;
+import com.sts.merchant.payment.response.cashfree.SettlementResponse;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
