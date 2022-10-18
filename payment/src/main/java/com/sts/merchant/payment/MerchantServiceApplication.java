@@ -8,6 +8,7 @@ import com.sts.merchant.core.entity.LoanDetail;
 import com.sts.merchant.core.enums.AccountType;
 import com.sts.merchant.core.enums.Deal;
 import com.sts.merchant.core.enums.InfoType;
+import com.sts.merchant.core.enums.Loan;
 import com.sts.merchant.core.repository.ClientInfoRepository;
 import com.sts.merchant.core.repository.LoanAccountRepository;
 import com.sts.merchant.core.repository.LoanDetailRepository;
@@ -55,7 +56,7 @@ public class MerchantServiceApplication {
         SpringApplication.run(MerchantServiceApplication.class, args);
     }
 
-//
+
 //    private String getSaltString() {
 //        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 //        StringBuilder salt = new StringBuilder();
@@ -84,30 +85,28 @@ public class MerchantServiceApplication {
 //    @PostConstruct
 //    void test() throws Exception {
 //        LoanDetail loanDetail = new LoanDetail();
-//        loanDetail.setLoanId(1);
-//        loanDetail.setPartnerLoanId(1);
-//        loanDetail.setSanctionedAmount(BigDecimal.valueOf(100000000));
-//        loanDetail.setDisbursedAmount(BigDecimal.valueOf(100000000));
-//        loanDetail.setLoanStatus("A");
-//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 9, 25, 0, 0));
-//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 9, 25, 0, 0));
-//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 9, 25, 0, 0));
-//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 9, 25, 0, 0));
-//        loanDetail.setDailyMaxAmount(BigDecimal.valueOf(100000));
-//        loanDetail.setDailyMinAmount(BigDecimal.valueOf(10000));
-//        loanDetail.setMonthlyMaxAmount(BigDecimal.valueOf(100000));
-//        loanDetail.setMonthlyMinAmount(BigDecimal.valueOf(10000));
-//        loanDetail.setWeeklyMaxAmount(BigDecimal.valueOf(100000));
-//        loanDetail.setWeeklyMinAmount(BigDecimal.valueOf(10000));
-//        loanDetail.setYearlyMaxAmount(BigDecimal.valueOf(100000));
-//        loanDetail.setYearlyMinAmount(BigDecimal.valueOf(10000));
-//        loanDetail.setLenderName("PARALLEL_CAP_LENDER");
+//        loanDetail.setLoanId("PC_0000041_01");
+//        loanDetail.setPartnerLoanId("RPL_009_01");
+//        loanDetail.setSanctionedAmount(BigDecimal.valueOf(500000));
+//        loanDetail.setDisbursedAmount(BigDecimal.valueOf(500000));
+//        loanDetail.setLoanStatus(Loan.INACTIVE.toString());
+//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 10, 25, 0, 0));
+//        loanDetail.setLoanStartDate(LocalDateTime.of(2022, 10, 26, 0, 0));
+//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 10, 25, 0, 0));
+//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 10, 25, 0, 0));
+//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 10, 25, 0, 0));
+//        loanDetail.setDailyMinAmount(BigDecimal.valueOf(250000));
+//        loanDetail.setMonthlyMinAmount(BigDecimal.valueOf(250000));
+//        loanDetail.setWeeklyMinAmount(BigDecimal.valueOf(250000));
+//        loanDetail.setYearlyMinAmount(BigDecimal.valueOf(250000));
+//        loanDetail.setLenderName("Ramsons Projects Limited");
 //        loanDetail.setDealType(Deal.REVENUE_SHARE.toString());
-//        loanDetail.setContactEmail("arsheks@gmail.com");
-//        loanDetail.setContactNumber("9468841107");
-//        loanDetail.setContactName("Arshek");
-//        loanDetail.setPgShare(20);
-//        loanDetail.setTotalShare(10);
+//        loanDetail.setContactEmail("rishabh@toffeecoffeeroasters.com");
+//        loanDetail.setContactNumber("8552068076");
+//        loanDetail.setContactName("Rishabh Nigam");
+//        loanDetail.setPgShare(33);
+//        loanDetail.setTotalShare(21);
+//        loanDetail.setFixedFees(4);
 //        loanDetail.setPgName(AccountType.RAZORPAY.toString());
 //        loanDetail.setCreatedOn(LocalDateTime.now());
 //        loanDetail.setCreatedBy("PARALLEL_CAP_TEST");
@@ -115,7 +114,7 @@ public class MerchantServiceApplication {
 //
 //        LoanAccountMapping loanAccountMapping = new LoanAccountMapping();
 //        loanAccountMapping.setLoanId(loanDetail.getLoanId());
-//        loanAccountMapping.setStatus("A");
+//        loanAccountMapping.setStatus(Loan.INACTIVE.toString());
 //        loanAccountMapping.setFunderAccountId("acc_KHk94H5rNQancT");
 //        loanAccountMapping.setAccountType(AccountType.RAZORPAY.toString());
 //        loanAccountMapping.setLoanAccountMapId(1);
@@ -133,8 +132,8 @@ public class MerchantServiceApplication {
 //        pgClientInfoDetail.setCreatedOn(LocalDateTime.now());
 //        pgClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
 //        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
-//        pgClientInfoDetail.setInfo1(Crypto.encrypt("rzp_test_vmKFOOSoCA9XHK", secretKey, pgClientInfoDetail.getSalt()));
-//        pgClientInfoDetail.setInfo2(Crypto.encrypt("xtKWo7EYj0iNwg39L2QUsTSO", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo1(Crypto.encrypt("rzp_live_9SjyQn2ExUN8W7", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo2(Crypto.encrypt("EjWBlm69XxM6jg6ekgGLiBM1", secretKey, pgClientInfoDetail.getSalt()));
 //        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
 //
 //        System.out.println(pgClientInfoDetail.getInfo1() + "  ,,  " + pgClientInfoDetail.getInfo2());
