@@ -15,7 +15,7 @@ public class SettlementServiceImpl implements SettlementService {
     SettlementRepository settlementRepository;
 
     @Override
-    public SettlementDetail saveSettlement(Settlement settlement, Integer loanId, Integer accountId) {
+    public SettlementDetail saveSettlement(Settlement settlement, String loanId, Integer accountId) {
         SettlementDetail settlementDetail = new SettlementDetail();
         settlementDetail.setSettlementAmount(settlement.getSettlementAmount());
         settlementDetail.setLoanId(loanId);

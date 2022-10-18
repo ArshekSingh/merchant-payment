@@ -14,7 +14,21 @@ public class RazorpayScheduler {
     @Scheduled(fixedDelayString = "${app.scheduler.time}")
     public void scheduleFetchingRazorpayPayments() {
         razorpayService.fetchRazorpayPayments();
+    }
+
+    @Scheduled(fixedDelayString = "${app.scheduler.time}")
+    public void scheduleRazorpayPaymentsTransfer() {
         razorpayService.transferMoney(Transaction.CAPTURED.toString());
+    }
+
+    @Scheduled(fixedDelayString = "${app.scheduler.time}")
+    public void scheduleRazorpayTransferEnquiry() {
         razorpayService.transferEnquiry();
     }
+
+    @Scheduled(fixedDelayString = "${app.scheduler.failed.time}")
+    public void scheduleFailedRazorpayPaymentsTransfer() {
+        razorpayService.transferMoney(Transaction.FAILED.toString());
+    }
+
 }

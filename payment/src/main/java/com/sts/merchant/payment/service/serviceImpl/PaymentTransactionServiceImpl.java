@@ -29,7 +29,7 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
 
     @Transactional
     @Override
-    public void saveRazorpayPaymentAsTransaction(Item item, String accountId, Integer loanId, Integer loanAccountMapId) throws JsonProcessingException {
+    public void saveRazorpayPaymentAsTransaction(Item item, String accountId, String loanId, Integer loanAccountMapId) throws JsonProcessingException {
         TransactionDetail transactionDetail = new TransactionDetail();
         transactionDetail.setTransactionId(item.getId());
         System.out.println("Transaction Amount " + BigDecimal.valueOf(item.getAmount() / 100));
@@ -52,7 +52,7 @@ public class PaymentTransactionServiceImpl implements PaymentTransactionService 
     }
 
     @Override
-    public void saveCashFreePaymentAsTransaction(Settlement item, String accountId, Integer loanId, Integer loanAccountMapId) throws JsonProcessingException {
+    public void saveCashFreePaymentAsTransaction(Settlement item, String accountId, String loanId, Integer loanAccountMapId) throws JsonProcessingException {
         TransactionDetail transactionDetail = new TransactionDetail();
         transactionDetail.setTransactionId(item.getId());
         transactionDetail.setTransactionAmount(item.getTotalTxAmount());
