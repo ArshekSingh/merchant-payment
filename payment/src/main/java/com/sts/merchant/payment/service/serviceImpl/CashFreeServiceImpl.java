@@ -84,7 +84,7 @@ public class CashFreeServiceImpl implements CashfreeService {
 
                             //Fetch client info for client id and secret
                             Optional<ClientInfoDetail> clientInfoDetail = clientInfoRepository.findClientInfoByAccount(loanAccountMapping.getLoanAccountMapId(), AccountType.CASHFREE.toString(), InfoType.PG.toString());
-                            String startDate = lastSettlement.map(settlementDetail -> DateTimeUtil.localDateTimeToString(DateTimeUtil.stringToLocalDateTime(settlementDetail.getSettledOn()))).orElseGet(() -> DateTimeUtil.localDateTimeToString(loan.getDisbursementDate()));
+                            String startDate = lastSettlement.map(settlementDetail -> DateTimeUtil.localDateTimeToString(DateTimeUtil.stringToLocalDateTime(settlementDetail.getSettledOn()))).orElseGet(() -> DateTimeUtil.localDateTimeToString(loan.getLoanStartDate()));
                             fetchAndSaveCashfreeSettlements(startDate, loan, loanAccountMapping, lastSettlement, clientInfoDetail);
                         }
                     } else {
