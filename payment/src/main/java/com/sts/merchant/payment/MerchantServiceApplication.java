@@ -132,8 +132,8 @@ public class MerchantServiceApplication {
 //        pgClientInfoDetail.setCreatedOn(LocalDateTime.now());
 //        pgClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
 //        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
-//        pgClientInfoDetail.setInfo1(Crypto.encrypt("rzp_live_9SjyQn2ExUN8W7", secretKey, pgClientInfoDetail.getSalt()));
-//        pgClientInfoDetail.setInfo2(Crypto.encrypt("EjWBlm69XxM6jg6ekgGLiBM1", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo1(Crypto.encrypt("", secretKey, pgClientInfoDetail.getSalt()));
+//        pgClientInfoDetail.setInfo2(Crypto.encrypt("", secretKey, pgClientInfoDetail.getSalt()));
 //        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
 //
 //        System.out.println(pgClientInfoDetail.getInfo1() + "  ,,  " + pgClientInfoDetail.getInfo2());

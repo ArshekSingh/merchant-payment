@@ -15,7 +15,7 @@ import com.sts.merchant.payment.service.PaymentTransactionService;
 import com.sts.merchant.payment.service.RazorpayService;
 import com.sts.merchant.payment.utils.Constants;
 import com.sts.merchant.payment.utils.Crypto;
-import com.sts.merchant.payment.utils.DateTimeUtil;
+import com.sts.merchant.core.util.DateTimeUtil;
 import com.sts.merchant.payment.utils.RazorpayPG;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;

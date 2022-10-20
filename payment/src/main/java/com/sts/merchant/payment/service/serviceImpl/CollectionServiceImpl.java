@@ -4,7 +4,7 @@ import com.sts.merchant.core.entity.*;
 import com.sts.merchant.core.enums.Collection;
 import com.sts.merchant.core.repository.CollectionRepository;
 import com.sts.merchant.payment.service.CollectionService;
-import com.sts.merchant.payment.utils.DateTimeUtil;
+import com.sts.merchant.core.util.DateTimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -7,6 +7,8 @@ public class Constants {
     public static final BigDecimal ONE_HUNDRED = new BigDecimal(100);
     public static final Integer FIRST_ELEMENT = 0;
 
+    public static final String COLLECTION_DETAIL = "LOAN ID, COLLECTION AMT, COLLECTION DATE, COLL TYPE, CREATED BY, CREATED ON, REFUND TXN ID, SETTLEMENT ID, STATUS, TXN ID, TRANSFER ID, UPDATED BY, UPDATED ON, UTR ID";
+
     public static BigDecimal percentage(BigDecimal base, BigDecimal pct) {
         return base.multiply(pct).divide(ONE_HUNDRED);
     }
