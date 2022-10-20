@@ -84,53 +84,49 @@ public class MerchantServiceApplication {
 //
 //    @PostConstruct
 //    void test() throws Exception {
+//        //actualTransferredAmount
 //        LoanDetail loanDetail = new LoanDetail();
 //        loanDetail.setLoanId("PC_0000041_01");
 //        loanDetail.setPartnerLoanId("RPL_009_01");
 //        loanDetail.setSanctionedAmount(BigDecimal.valueOf(500000));
 //        loanDetail.setDisbursedAmount(BigDecimal.valueOf(500000));
 //        loanDetail.setLoanStatus(Loan.INACTIVE.toString());
-//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 10, 25, 0, 0));
-//        loanDetail.setLoanStartDate(LocalDateTime.of(2022, 10, 26, 0, 0));
-//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 10, 25, 0, 0));
-//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 10, 25, 0, 0));
-//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 10, 25, 0, 0));
-//        loanDetail.setDailyMinAmount(BigDecimal.valueOf(250000));
+//        loanDetail.setDisbursementDate(LocalDateTime.of(2022, 10, 19, 0, 0));
+//        loanDetail.setLoanStartDate(LocalDateTime.of(2022, 10, 20, 0, 0));
+//        loanDetail.setWeekStartDate(LocalDateTime.of(2022, 10, 20, 0, 0));
+//        loanDetail.setYearlyStartDate(LocalDateTime.of(2022, 10, 20, 0, 0));
+//        loanDetail.setMonthStartDate(LocalDateTime.of(2022, 10, 20, 0, 0));
 //        loanDetail.setMonthlyMinAmount(BigDecimal.valueOf(250000));
-//        loanDetail.setWeeklyMinAmount(BigDecimal.valueOf(250000));
-//        loanDetail.setYearlyMinAmount(BigDecimal.valueOf(250000));
 //        loanDetail.setLenderName("Ramsons Projects Limited");
 //        loanDetail.setDealType(Deal.REVENUE_SHARE.toString());
 //        loanDetail.setContactEmail("rishabh@toffeecoffeeroasters.com");
 //        loanDetail.setContactNumber("8552068076");
 //        loanDetail.setContactName("Rishabh Nigam");
-//        loanDetail.setPgShare(33);
-//        loanDetail.setTotalShare(21);
-//        loanDetail.setFixedFees(4);
+//        loanDetail.setPgShare(35);
+//        loanDetail.setTotalShare(28);
+//        loanDetail.setFixedFees(BigDecimal.valueOf(4));
 //        loanDetail.setPgName(AccountType.RAZORPAY.toString());
 //        loanDetail.setCreatedOn(LocalDateTime.now());
-//        loanDetail.setCreatedBy("PARALLEL_CAP_TEST");
+//        loanDetail.setCreatedBy("PARALLEL_CAP");
 //        loanDetail = loanDetailRepository.save(loanDetail);
 //
 //        LoanAccountMapping loanAccountMapping = new LoanAccountMapping();
 //        loanAccountMapping.setLoanId(loanDetail.getLoanId());
 //        loanAccountMapping.setStatus(Loan.INACTIVE.toString());
-//        loanAccountMapping.setFunderAccountId("acc_KHk94H5rNQancT");
+//        loanAccountMapping.setFunderAccountId("acc_KKyCaEc5Gfn0u5");
 //        loanAccountMapping.setAccountType(AccountType.RAZORPAY.toString());
-//        loanAccountMapping.setLoanAccountMapId(1);
-//        loanAccountMapping.setAccountId("KHjzQcBt8L0IeN");
+//        loanAccountMapping.setAccountId("JkYgXkOWXVEmTF");
 //        loanAccountMapping.setCreatedOn(LocalDateTime.now());
-//        loanAccountMapping.setCreatedBy("PARALLEL_CAP_TEST");
+//        loanAccountMapping.setCreatedBy("PARALLEL_CAP");
 //        loanAccountMapping = loanAccountRepository.save(loanAccountMapping);
 //
 //        ClientInfoDetail pgClientInfoDetail = new ClientInfoDetail();
-//        pgClientInfoDetail.setId(1);
 //        pgClientInfoDetail.setSalt(getSaltString());
-//        pgClientInfoDetail.setLoanAccountMapId(1);
+//        pgClientInfoDetail.setLoanAccountMapId(loanAccountMapping.getLoanAccountMapId());
 //        pgClientInfoDetail.setAccountType(AccountType.RAZORPAY.toString());
 //        pgClientInfoDetail.setInfoType(InfoType.PG.toString());
 //        pgClientInfoDetail.setCreatedOn(LocalDateTime.now());
-//        pgClientInfoDetail.setCreatedBy("PARALLEL_CAP_TEST");
+//        pgClientInfoDetail.setCreatedBy("PARALLEL_CAP");
 //        pgClientInfoDetail = clientInfoRepository.save(pgClientInfoDetail);
 //        pgClientInfoDetail.setInfo1(Crypto.encrypt("rzp_live_9SjyQn2ExUN8W7", secretKey, pgClientInfoDetail.getSalt()));
 //        pgClientInfoDetail.setInfo2(Crypto.encrypt("EjWBlm69XxM6jg6ekgGLiBM1", secretKey, pgClientInfoDetail.getSalt()));
