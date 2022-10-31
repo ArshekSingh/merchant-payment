@@ -17,7 +17,6 @@ import com.sts.merchant.payment.utils.Crypto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -54,24 +53,9 @@ public class MerchantServiceApplication {
         return objectMapper;
     }
 
-
-//    @Autowired
-//    private CollectionMailService emailService;
-
     public static void main(String[] args) {
         SpringApplication.run(MerchantServiceApplication.class, args);
     }
-
-//    @Override
-//    public void run(String... args)
-//    {
-//        //emailService.sendMail("shubham.rohilla@sastechstudio.com", "Happy Coding", "Email sent with demo application");
-//
-//        emailService.sendPreConfiguredMail("Happy Coding");
-//
-//    }
-
-
 
 
 //    private String getSaltString() {

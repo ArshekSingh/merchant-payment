@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletResponse;
-
 @RestController
 @RequestMapping(value = "/api/payment")
 @Slf4j
@@ -19,7 +17,7 @@ public class CollectionMailController {
     private CollectionMailService collectionMailService;
 
     @PostMapping("/downloadCollectionDetailExcel")
-    public void generateExcelOfCollectionDetail(HttpServletResponse httpServletResponse) {
-        collectionMailService.generateExcelForCollectionDetail(httpServletResponse);
+    public void generateExcelOfCollectionDetail() {
+        collectionMailService.generateExcelForCollectionDetail();
     }
 }
