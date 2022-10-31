@@ -16,16 +16,13 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
 
-//@Component
-@RestController
-@RequestMapping(value = "/api/payment")
+@Component
 @Slf4j
 public class RazorpayScheduler {
 //    @Autowired
 //    private RazorpayService razorpayService;
 
-    @Autowired
-    private CollectionMailService collectionMailService;
+
 
 //    @Scheduled(fixedDelayString = "${app.scheduler.time}")
 //    public void scheduleFetchingRazorpayPayments() {
@@ -48,9 +45,6 @@ public class RazorpayScheduler {
 //    }
 //
 
-    @PostMapping("/downloadCollectionDetailExcel")
-    public void generateExcelOfCollectionDetail(HttpServletResponse httpServletResponse) {
-        collectionMailService.generateExcelForCollectionDetail(httpServletResponse);
-    }
+
 
 }

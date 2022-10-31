@@ -1,9 +1,12 @@
 package com.sts.merchant.payment.utils;
 
+import com.sts.merchant.payment.service.CollectionMailService;
+import com.sts.merchant.payment.service.serviceImpl.CollectionMailServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.FillPatternType;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletResponse;
@@ -14,7 +17,6 @@ import java.util.*;
 @Component
 @Slf4j
 public class ExcelGeneratorUtil {
-
 
     public void buildExcelDocument(Map<String, Object> model, HSSFWorkbook workbook) {
         String sheetName = (String) model.get("Excel Name");
@@ -76,15 +78,21 @@ public class ExcelGeneratorUtil {
         return String.valueOf(map.get("Excel Name"));
     }
 
-    public void downloadDocument(HttpServletResponse httpServletResponse, Map<String, Object> map, HSSFWorkbook workbook) throws IOException {
+    public byte[] downloadDocument(HttpServletResponse httpServletResponse, Map<String, Object> map, HSSFWorkbook workbook) throws IOException {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
             workbook.write(byteArrayOutputStream);
             byte[] bytes = byteArrayOutputStream.toByteArray();
+
             httpServletResponse.setHeader("Content-Disposition", "attachment; filename=" + getFileName(map));
             httpServletResponse.setContentType("application/xls");
             httpServletResponse.getOutputStream().write(bytes);
+
+            return bytes;
+
+
         } catch (Exception exception) {
             log.error("Exception occurs while downloading Collection Detail Excel {}", exception.getMessage());
+            return null;
         }
     }
 }

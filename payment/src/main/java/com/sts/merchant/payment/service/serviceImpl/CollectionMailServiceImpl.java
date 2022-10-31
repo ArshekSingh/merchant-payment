@@ -10,18 +10,22 @@ import com.sts.merchant.payment.utils.ExcelGeneratorUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.stereotype.Service;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
 import javax.mail.Message;
+import javax.mail.Multipart;
+import javax.mail.Part;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.util.ByteArrayDataSource;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -46,17 +50,31 @@ public class CollectionMailServiceImpl implements CollectionMailService {
     @Autowired
     private ExcelAssembler excelAssembler;
 
-    public void sendMailWithAttachment(String to, String subject, String body, String fileToAttach) {
+    public void sendMail(byte[] bytes) {
+        sendMailWithAttachment("shubham.rohilla@sastechstudio.com", "Happy Coding", "Email sent with demo application", "CollectionDetail", bytes);
+    }
+
+    @Override
+    public void sendMailWithAttachment(String to, String subject, String body, String fileName, byte[] ba) {
         MimeMessagePreparator preparator = new MimeMessagePreparator() {
             public void prepare(MimeMessage mimeMessage) throws Exception {
                 mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
-                mimeMessage.setFrom(new InternetAddress("admin@gmail.com"));
+                mimeMessage.setFrom(new InternetAddress("arshek.singh@parallelcap.in"));
                 mimeMessage.setSubject(subject);
                 mimeMessage.setText(body);
 
-                FileSystemResource file = new FileSystemResource(new File(fileToAttach));
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
-                helper.addAttachment("logo.jpg", file);
+                Multipart multiPart = new MimeMultipart();
+
+                byte[] bs = ba;
+                if (bs != null && bs.length > 0) {
+                    DataSource fds = new ByteArrayDataSource(bs, "application/octet-stream");
+                    MimeBodyPart attachment = new MimeBodyPart();
+                    attachment.setDataHandler(new DataHandler(fds));
+                    attachment.setDisposition(Part.ATTACHMENT);
+                    attachment.setFileName(fileName + ".xls");
+                    multiPart.addBodyPart(attachment);
+                }
+                mimeMessage.setContent(multiPart);
             }
         };
         try {
@@ -95,7 +113,8 @@ public class CollectionMailServiceImpl implements CollectionMailService {
                         Map<String, Object> map = excelGeneratorUtil.populateHeaderAndName(COLLECTION_DETAIL, "collection_detail.xls");
                         map.put("RESULTS", excelAssembler.prepareCollectionDetailData(collections.get()));
                         excelGeneratorUtil.buildExcelDocument(map, workbook);
-                        excelGeneratorUtil.downloadDocument(httpServerResponse, map, workbook);
+                        byte[] bytes = excelGeneratorUtil.downloadDocument(httpServerResponse, map, workbook);
+                        sendMail(bytes);
                     } catch (Exception exception) {
                         log.error("Exception occurs while downloading Excel {}", exception.getMessage());
                     }
