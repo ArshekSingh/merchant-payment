@@ -7,7 +7,6 @@ import org.apache.poi.ss.usermodel.FillPatternType;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.*;
 
 @Component
@@ -69,21 +68,15 @@ public class ExcelGeneratorUtil {
         return map;
     }
 
-
-    public String getFileName(Map<String, Object> map) {
-        return String.valueOf(map.get("Excel Name"));
-    }
-
-    public byte[] downloadDocument(Map<String, Object> map, HSSFWorkbook workbook) throws IOException {
+    public byte[] downloadDocument(HSSFWorkbook workbook) {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
             workbook.write(byteArrayOutputStream);
-            byte[] bytes = byteArrayOutputStream.toByteArray();
+            return byteArrayOutputStream.toByteArray();
 
-            return bytes;
 
         } catch (Exception exception) {
             log.error("Exception occurs while downloading Collection Detail Excel {}", exception.getMessage());
-            return null;
+            return new byte[0];
         }
     }
 }

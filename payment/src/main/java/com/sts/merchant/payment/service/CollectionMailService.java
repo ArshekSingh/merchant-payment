@@ -1,14 +1,12 @@
 package com.sts.merchant.payment.service;
 
-import java.time.LocalDateTime;
-
 public interface CollectionMailService {
 
-    void generateExcelForCollectionDetail();
+    void generateExcelForCollectionDetail(String loanId);
 
-    void findCollectionDetailByDate(LocalDateTime collectionStartDate, LocalDateTime collectionEndDate);
+    void findCollectionDetailByLoanId(String loanId);
 
     void sendMailWithAttachment(String to, String subject, String body, String fileName, byte[] ba);
 
-    void sendMail(byte[] bytes);
+    void sendMail(byte[] bytes, String loanId);
 }
